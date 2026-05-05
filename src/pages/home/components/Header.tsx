@@ -1,0 +1,65 @@
+import { useState } from 'react';
+import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
+
+export default function Header() {
+  const { config } = useSiteConfigContext();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <header className="w-full relative z-50">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
+        <a href="/" className="flex items-center">
+          <img
+            src={config.logo}
+            alt="Salekit Logo"
+            width={config.logoWidth}
+            height={config.logoHeight}
+            className="h-8 md:h-10 w-auto object-contain"
+          />
+        </a>
+
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-6">
+          <a href="/#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">Cách hoạt động</a>
+          <a href="/#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">Tính năng</a>
+          <a href="/#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">Bảng giá</a>
+          <a href="/#contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">Liên hệ</a>
+          <a
+            href="/admin"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap"
+          >
+            <span className="inline-flex items-center gap-2">
+              <i className="ri-settings-3-line w-4 h-4 flex items-center justify-center" />
+              Quản trị
+            </span>
+          </a>
+        </nav>
+
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="md:hidden w-10 h-10 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+          aria-label="Toggle menu"
+        >
+          <i className={`${menuOpen ? 'ri-close-line' : 'ri-menu-line'} text-xl text-gray-700 w-6 h-6 flex items-center justify-center`} />
+        </button>
+      </div>
+
+      {/* Mobile menu panel */}
+      {menuOpen && (
+        <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-sm">
+          <nav className="flex flex-col px-4 py-3 gap-1">
+            <a href="/#how-it-works" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">Cách hoạt động</a>
+            <a href="/#features" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">Tính năng</a>
+            <a href="/#pricing" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">Bảng giá</a>
+            <a href="/#contact" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">Liên hệ</a>
+            <a href="/admin" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap inline-flex items-center gap-2">
+              <i className="ri-settings-3-line w-4 h-4 flex items-center justify-center" />
+              Quản trị
+            </a>
+          </nav>
+        </div>
+      )}
+    </header>
+  );
+}
