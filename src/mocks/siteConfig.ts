@@ -2,8 +2,14 @@ import type { SiteConfig } from '@/hooks/useSiteConfig';
 
 export const defaultSiteConfig: SiteConfig = {
   logo: 'https://salekit.page/assets/images/logo/logo.png',
-  logoWidth: 200,
-  logoHeight: 47,
+  logoWidth: 240,
+  logoHeight: 56,
+  nav: {
+    howItWorks: 'Cách hoạt động',
+    features: 'Tính năng',
+    pricing: 'Bảng giá',
+    contact: 'Liên hệ',
+  },
   hero: {
     title: 'Hãy xây dựng sản phẩm của bạn bằng ứng dụng Appexy.',
     subtitle: 'Nhưng quả thực, cả hai chúng ta đều buộc tội và đưa ra những kẻ đáng bị căm ghét, những kẻ bị nhu nhược và hư hỏng bởi sự tâng bốc của những thú vui hiện tại, những kẻ phải chịu đau đớn và rắc rối, và những điều tương tự, là do lỗi của chúng ta đã không chu cấp.',

@@ -50,6 +50,12 @@ export interface SiteConfig {
   logo: string;
   logoWidth: number;
   logoHeight: number;
+  nav: {
+    howItWorks: string;
+    features: string;
+    pricing: string;
+    contact: string;
+  };
   hero: {
     title: string;
     subtitle: string;
@@ -217,6 +223,10 @@ export function useSiteConfig() {
     setConfigState((prev) => ({ ...prev, footer: { ...prev.footer, ...footer } }));
   }, []);
 
+  const updateNav = useCallback((nav: Partial<SiteConfig['nav']>) => {
+    setConfigState((prev) => ({ ...prev, nav: { ...prev.nav, ...nav } }));
+  }, []);
+
   const resetConfig = useCallback(() => {
     setConfigState(defaultSiteConfig);
     localStorage.removeItem(STORAGE_KEY);
@@ -236,6 +246,7 @@ export function useSiteConfig() {
     updateFAQItem,
     updateContact,
     updateFooter,
+    updateNav,
     resetConfig,
   };
 }

@@ -16,6 +16,7 @@ interface SiteConfigContextType {
   updateFAQItem: (index: number, faq: Partial<FAQItem>) => void;
   updateContact: (contact: Partial<SiteConfig['contact']>) => void;
   updateFooter: (footer: Partial<SiteConfig['footer']>) => void;
+  updateNav: (nav: Partial<SiteConfig['nav']>) => void;
   resetConfig: () => void;
 }
 

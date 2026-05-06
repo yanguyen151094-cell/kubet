@@ -13,9 +13,8 @@ export default function Footer() {
             <img
               src={logo}
               alt="Salekit"
-              width={logoWidth}
-              height={logoHeight}
-              className="h-8 md:h-10 w-auto object-contain mb-3 md:mb-4"
+              className="object-contain max-w-full mb-3 md:mb-4"
+              style={{ width: logoWidth, height: logoHeight }}
             />
             <div className="text-xs sm:text-sm text-gray-600 space-y-1">
               <p>{address}</p>

@@ -12,18 +12,17 @@ export default function Header() {
           <img
             src={config.logo}
             alt="Salekit Logo"
-            width={config.logoWidth}
-            height={config.logoHeight}
-            className="h-8 md:h-10 w-auto object-contain"
+            className="object-contain max-w-full"
+            style={{ width: config.logoWidth, height: config.logoHeight }}
           />
         </a>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6">
-          <a href="/#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">Cách hoạt động</a>
-          <a href="/#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">Tính năng</a>
-          <a href="/#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">Bảng giá</a>
-          <a href="/#contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">Liên hệ</a>
+          <a href="/#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.howItWorks}</a>
+          <a href="/#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.features}</a>
+          <a href="/#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.pricing}</a>
+          <a href="/#contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.contact}</a>
           <a
             href="/admin"
             className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap"
@@ -49,10 +48,10 @@ export default function Header() {
       {menuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-sm">
           <nav className="flex flex-col px-4 py-3 gap-1">
-            <a href="/#how-it-works" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">Cách hoạt động</a>
-            <a href="/#features" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">Tính năng</a>
-            <a href="/#pricing" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">Bảng giá</a>
-            <a href="/#contact" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">Liên hệ</a>
+            <a href="/#how-it-works" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.howItWorks}</a>
+            <a href="/#features" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.features}</a>
+            <a href="/#pricing" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.pricing}</a>
+            <a href="/#contact" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.contact}</a>
             <a href="/admin" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap inline-flex items-center gap-2">
               <i className="ri-settings-3-line w-4 h-4 flex items-center justify-center" />
               Quản trị

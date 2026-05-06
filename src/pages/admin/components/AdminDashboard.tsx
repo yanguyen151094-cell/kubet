@@ -10,6 +10,7 @@ interface Tab {
 
 const tabs: Tab[] = [
   { id: 'logo', label: 'Logo & Thương hiệu', icon: 'ri-image-line' },
+  { id: 'nav', label: 'Menu điều hướng', icon: 'ri-menu-line' },
   { id: 'hero', label: 'Hero Section', icon: 'ri-home-4-line' },
   { id: 'howitworks', label: 'Cách hoạt động', icon: 'ri-settings-2-line' },
   { id: 'features', label: 'Tính năng', icon: 'ri-star-line' },
@@ -37,6 +38,7 @@ export default function AdminDashboard() {
     updateFAQItem,
     updateContact,
     updateFooter,
+    updateNav,
     resetConfig,
   } = useSiteConfigContext();
 
@@ -154,6 +156,49 @@ export default function AdminDashboard() {
                     type="number"
                     value={config.logoHeight}
                     onChange={(e) => setConfig({ logoHeight: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'nav' && (
+            <div className="bg-white rounded-lg p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cách hoạt động</label>
+                  <input
+                    type="text"
+                    value={config.nav.howItWorks}
+                    onChange={(e) => updateNav({ howItWorks: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tính năng</label>
+                  <input
+                    type="text"
+                    value={config.nav.features}
+                    onChange={(e) => updateNav({ features: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bảng giá</label>
+                  <input
+                    type="text"
+                    value={config.nav.pricing}
+                    onChange={(e) => updateNav({ pricing: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Liên hệ</label>
+                  <input
+                    type="text"
+                    value={config.nav.contact}
+                    onChange={(e) => updateNav({ contact: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
