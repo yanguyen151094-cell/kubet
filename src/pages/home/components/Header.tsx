@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
 
 export default function Header() {
@@ -23,15 +24,20 @@ export default function Header() {
           <a href="/#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.features}</a>
           <a href="/#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.pricing}</a>
           <a href="/#contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.contact}</a>
-          <a
-            href="/admin"
-            className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap"
-          >
-            <span className="inline-flex items-center gap-2">
-              <i className="ri-settings-3-line w-4 h-4 flex items-center justify-center" />
-              Quản trị
-            </span>
-          </a>
+          <div className="flex items-center gap-3 ml-2">
+            <Link
+              to="/dang-nhap"
+              className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap px-3 py-2 rounded-md hover:bg-gray-50"
+            >
+              Đăng nhập
+            </Link>
+            <Link
+              to="/dang-ky"
+              className="text-sm bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors whitespace-nowrap"
+            >
+              Đăng ký
+            </Link>
+          </div>
         </nav>
 
         {/* Mobile hamburger */}
@@ -52,10 +58,16 @@ export default function Header() {
             <a href="/#features" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.features}</a>
             <a href="/#pricing" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.pricing}</a>
             <a href="/#contact" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.contact}</a>
-            <a href="/admin" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap inline-flex items-center gap-2">
-              <i className="ri-settings-3-line w-4 h-4 flex items-center justify-center" />
-              Quản trị
-            </a>
+            <div className="border-t border-gray-100 mt-2 pt-2 flex flex-col gap-1">
+              <Link to="/dang-nhap" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap inline-flex items-center gap-2">
+                <i className="ri-login-box-line w-4 h-4 flex items-center justify-center" />
+                Đăng nhập
+              </Link>
+              <Link to="/dang-ky" onClick={() => setMenuOpen(false)} className="text-sm bg-gray-900 text-white px-3 py-2.5 rounded-md transition-colors whitespace-nowrap inline-flex items-center gap-2 mt-1">
+                <i className="ri-user-add-line w-4 h-4 flex items-center justify-center" />
+                Đăng ký
+              </Link>
+            </div>
           </nav>
         </div>
       )}

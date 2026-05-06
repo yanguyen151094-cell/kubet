@@ -11,6 +11,7 @@ interface Tab {
 const tabs: Tab[] = [
   { id: 'logo', label: 'Logo & Thương hiệu', icon: 'ri-image-line' },
   { id: 'nav', label: 'Menu điều hướng', icon: 'ri-menu-line' },
+  { id: 'auth', label: 'Đăng nhập/Đăng ký', icon: 'ri-user-line' },
   { id: 'hero', label: 'Hero Section', icon: 'ri-home-4-line' },
   { id: 'howitworks', label: 'Cách hoạt động', icon: 'ri-settings-2-line' },
   { id: 'features', label: 'Tính năng', icon: 'ri-star-line' },
@@ -39,6 +40,8 @@ export default function AdminDashboard() {
     updateContact,
     updateFooter,
     updateNav,
+    updateAuthRegister,
+    updateAuthLogin,
     resetConfig,
   } = useSiteConfigContext();
 
@@ -201,6 +204,310 @@ export default function AdminDashboard() {
                     onChange={(e) => updateNav({ contact: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
                   />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'auth' && (
+            <div className="space-y-6">
+              {/* ===== Register config ===== */}
+              <div className="bg-white rounded-lg p-6 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-8 h-8 flex items-center justify-center bg-red-50 rounded-md">
+                    <i className="ri-user-add-line w-5 h-5 flex items-center justify-center text-red-600" />
+                  </span>
+                  <h2 className="text-base font-semibold text-gray-900">Trang Đăng ký</h2>
+                </div>
+                <ImageUpload
+                  label="Logo đăng ký"
+                  value={config.authRegister.authLogo}
+                  onChange={(url) => updateAuthRegister({ authLogo: url })}
+                  helpText="Chọn ảnh logo hiển thị trên form đăng ký"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Width logo (px)</label>
+                    <input
+                      type="number"
+                      value={config.authRegister.authLogoWidth}
+                      onChange={(e) => updateAuthRegister({ authLogoWidth: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Height logo (px)</label>
+                    <input
+                      type="number"
+                      value={config.authRegister.authLogoHeight}
+                      onChange={(e) => updateAuthRegister({ authLogoHeight: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
+                    <input
+                      type="text"
+                      value={config.authRegister.title}
+                      onChange={(e) => updateAuthRegister({ title: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phụ đề</label>
+                    <input
+                      type="text"
+                      value={config.authRegister.subtitle}
+                      onChange={(e) => updateAuthRegister({ subtitle: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn SĐT</label>
+                    <input
+                      type="text"
+                      value={config.authRegister.phoneLabel}
+                      onChange={(e) => updateAuthRegister({ phoneLabel: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn tên đăng ký</label>
+                    <input
+                      type="text"
+                      value={config.authRegister.usernameLabel}
+                      onChange={(e) => updateAuthRegister({ usernameLabel: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nút bấm</label>
+                    <input
+                      type="text"
+                      value={config.authRegister.buttonText}
+                      onChange={(e) => updateAuthRegister({ buttonText: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Thông báo thành công</label>
+                    <input
+                      type="text"
+                      value={config.authRegister.successMessage}
+                      onChange={(e) => updateAuthRegister({ successMessage: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Thanh công cụ 1</label>
+                    <input
+                      type="text"
+                      value={config.authRegister.toolbar1}
+                      onChange={(e) => updateAuthRegister({ toolbar1: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Thanh công cụ 2</label>
+                    <input
+                      type="text"
+                      value={config.authRegister.toolbar2}
+                      onChange={(e) => updateAuthRegister({ toolbar2: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Màu nền trang</label>
+                    <input
+                      type="color"
+                      value={config.authRegister.bgColor}
+                      onChange={(e) => updateAuthRegister({ bgColor: e.target.value })}
+                      className="w-full h-10 rounded-md border border-gray-200 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Màu nền khung</label>
+                    <input
+                      type="color"
+                      value={config.authRegister.cardBg}
+                      onChange={(e) => updateAuthRegister({ cardBg: e.target.value })}
+                      className="w-full h-10 rounded-md border border-gray-200 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Màu viền</label>
+                    <input
+                      type="color"
+                      value={config.authRegister.borderColor}
+                      onChange={(e) => updateAuthRegister({ borderColor: e.target.value })}
+                      className="w-full h-10 rounded-md border border-gray-200 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Màu nhấn/nút</label>
+                    <input
+                      type="color"
+                      value={config.authRegister.accentColor}
+                      onChange={(e) => updateAuthRegister({ accentColor: e.target.value })}
+                      className="w-full h-10 rounded-md border border-gray-200 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ===== Login config ===== */}
+              <div className="bg-white rounded-lg p-6 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-8 h-8 flex items-center justify-center bg-red-50 rounded-md">
+                    <i className="ri-login-box-line w-5 h-5 flex items-center justify-center text-red-600" />
+                  </span>
+                  <h2 className="text-base font-semibold text-gray-900">Trang Đăng nhập</h2>
+                </div>
+                <ImageUpload
+                  label="Logo đăng nhập"
+                  value={config.authLogin.authLogo}
+                  onChange={(url) => updateAuthLogin({ authLogo: url })}
+                  helpText="Chọn ảnh logo hiển thị trên form đăng nhập"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Width logo (px)</label>
+                    <input
+                      type="number"
+                      value={config.authLogin.authLogoWidth}
+                      onChange={(e) => updateAuthLogin({ authLogoWidth: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Height logo (px)</label>
+                    <input
+                      type="number"
+                      value={config.authLogin.authLogoHeight}
+                      onChange={(e) => updateAuthLogin({ authLogoHeight: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
+                    <input
+                      type="text"
+                      value={config.authLogin.title}
+                      onChange={(e) => updateAuthLogin({ title: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phụ đề</label>
+                    <input
+                      type="text"
+                      value={config.authLogin.subtitle}
+                      onChange={(e) => updateAuthLogin({ subtitle: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn SĐT</label>
+                    <input
+                      type="text"
+                      value={config.authLogin.phoneLabel}
+                      onChange={(e) => updateAuthLogin({ phoneLabel: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn tên đăng nhập</label>
+                    <input
+                      type="text"
+                      value={config.authLogin.usernameLabel}
+                      onChange={(e) => updateAuthLogin({ usernameLabel: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nút bấm</label>
+                    <input
+                      type="text"
+                      value={config.authLogin.buttonText}
+                      onChange={(e) => updateAuthLogin({ buttonText: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Thông báo thành công</label>
+                    <input
+                      type="text"
+                      value={config.authLogin.successMessage}
+                      onChange={(e) => updateAuthLogin({ successMessage: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Thanh công cụ 1</label>
+                    <input
+                      type="text"
+                      value={config.authLogin.toolbar1}
+                      onChange={(e) => updateAuthLogin({ toolbar1: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Thanh công cụ 2</label>
+                    <input
+                      type="text"
+                      value={config.authLogin.toolbar2}
+                      onChange={(e) => updateAuthLogin({ toolbar2: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Màu nền trang</label>
+                    <input
+                      type="color"
+                      value={config.authLogin.bgColor}
+                      onChange={(e) => updateAuthLogin({ bgColor: e.target.value })}
+                      className="w-full h-10 rounded-md border border-gray-200 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Màu nền khung</label>
+                    <input
+                      type="color"
+                      value={config.authLogin.cardBg}
+                      onChange={(e) => updateAuthLogin({ cardBg: e.target.value })}
+                      className="w-full h-10 rounded-md border border-gray-200 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Màu viền</label>
+                    <input
+                      type="color"
+                      value={config.authLogin.borderColor}
+                      onChange={(e) => updateAuthLogin({ borderColor: e.target.value })}
+                      className="w-full h-10 rounded-md border border-gray-200 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Màu nhấn/nút</label>
+                    <input
+                      type="color"
+                      value={config.authLogin.accentColor}
+                      onChange={(e) => updateAuthLogin({ accentColor: e.target.value })}
+                      className="w-full h-10 rounded-md border border-gray-200 cursor-pointer"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

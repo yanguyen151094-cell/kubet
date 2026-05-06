@@ -46,7 +46,27 @@ export interface FAQItem {
   answer: string;
 }
 
+export interface AuthPageConfig {
+  title: string;
+  subtitle: string;
+  phoneLabel: string;
+  usernameLabel: string;
+  buttonText: string;
+  successMessage: string;
+  errorMessage: string;
+  bgColor: string;
+  cardBg: string;
+  borderColor: string;
+  accentColor: string;
+  toolbar1: string;
+  toolbar2: string;
+  authLogo: string;
+  authLogoWidth: number;
+  authLogoHeight: number;
+}
+
 export interface SiteConfig {
+  version?: number;
   logo: string;
   logoWidth: number;
   logoHeight: number;
@@ -109,6 +129,8 @@ export interface SiteConfig {
     description: string;
     formImage: string;
   };
+  authRegister: AuthPageConfig;
+  authLogin: AuthPageConfig;
   footer: {
     logo: string;
     address: string;
@@ -122,13 +144,38 @@ export interface SiteConfig {
   };
 }
 
-const STORAGE_KEY = 'salekit_site_config';
+const STORAGE_KEY = 'salekit_site_config_v2';
+const OLD_STORAGE_KEY = 'salekit_site_config';
+
+function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...target };
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      result[key] = deepMerge(
+        (target[key] as Record<string, unknown>) || {},
+        source[key] as Record<string, unknown>
+      );
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
 
 function loadConfig(): SiteConfig {
   try {
+    // Xóa key cũ nếu còn
+    localStorage.removeItem(OLD_STORAGE_KEY);
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return { ...defaultSiteConfig, ...JSON.parse(stored) };
+      const parsed = JSON.parse(stored) as Record<string, unknown>;
+      // Nếu version khác hoặc không có, xóa và dùng default mới
+      if (!parsed.version || (parsed.version as number) < (defaultSiteConfig.version as number)) {
+        localStorage.removeItem(STORAGE_KEY);
+        return defaultSiteConfig;
+      }
+      const merged = deepMerge(defaultSiteConfig as unknown as Record<string, unknown>, parsed);
+      return merged as SiteConfig;
     }
   } catch {
     // ignore parse errors
@@ -227,6 +274,14 @@ export function useSiteConfig() {
     setConfigState((prev) => ({ ...prev, nav: { ...prev.nav, ...nav } }));
   }, []);
 
+  const updateAuthRegister = useCallback((auth: Partial<AuthPageConfig>) => {
+    setConfigState((prev) => ({ ...prev, authRegister: { ...prev.authRegister, ...auth } }));
+  }, []);
+
+  const updateAuthLogin = useCallback((auth: Partial<AuthPageConfig>) => {
+    setConfigState((prev) => ({ ...prev, authLogin: { ...prev.authLogin, ...auth } }));
+  }, []);
+
   const resetConfig = useCallback(() => {
     setConfigState(defaultSiteConfig);
     localStorage.removeItem(STORAGE_KEY);
@@ -247,6 +302,8 @@ export function useSiteConfig() {
     updateContact,
     updateFooter,
     updateNav,
+    updateAuthRegister,
+    updateAuthLogin,
     resetConfig,
   };
 }

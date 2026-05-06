@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
-import type { SiteConfig, HowItWorkItem, FeatureItem, StatItem, ScreenshotItem, TestimonialItem, PricingItem, FAQItem } from '@/hooks/useSiteConfig';
+import type { SiteConfig, HowItWorkItem, FeatureItem, StatItem, ScreenshotItem, TestimonialItem, PricingItem, FAQItem, AuthPageConfig } from '@/hooks/useSiteConfig';
 
 interface SiteConfigContextType {
   config: SiteConfig;
@@ -17,6 +17,8 @@ interface SiteConfigContextType {
   updateContact: (contact: Partial<SiteConfig['contact']>) => void;
   updateFooter: (footer: Partial<SiteConfig['footer']>) => void;
   updateNav: (nav: Partial<SiteConfig['nav']>) => void;
+  updateAuthRegister: (auth: Partial<AuthPageConfig>) => void;
+  updateAuthLogin: (auth: Partial<AuthPageConfig>) => void;
   resetConfig: () => void;
 }
 
