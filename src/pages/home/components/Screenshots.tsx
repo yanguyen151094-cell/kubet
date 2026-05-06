@@ -3,16 +3,39 @@ import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
 export default function Screenshots() {
   const { config } = useSiteConfigContext();
   const { label, title, subtitle, items } = config.screenshots;
+  const { screenshotsStyle } = config;
 
   return (
-    <section className="w-full py-12 md:py-20 bg-gray-50/50">
-      <div className="max-w-5xl mx-auto px-4 md:px-6 text-center mb-10">
-        <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">{label}</p>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3">{title}</h2>
-        <p className="text-sm text-gray-500 max-w-xl mx-auto">{subtitle}</p>
+    <section
+      className="w-full"
+      style={{
+        paddingTop: screenshotsStyle.paddingTop,
+        paddingBottom: screenshotsStyle.paddingBottom,
+        backgroundColor: screenshotsStyle.bgColor,
+      }}
+    >
+      <div className="mx-auto px-4 md:px-6 text-center mb-10" style={{ maxWidth: screenshotsStyle.maxWidth }}>
+        <p
+          className="font-semibold text-gray-500 uppercase tracking-wider mb-2"
+          style={{ fontSize: screenshotsStyle.labelSize }}
+        >
+          {label}
+        </p>
+        <h2
+          className="font-bold text-gray-900 mb-3"
+          style={{ fontSize: screenshotsStyle.titleSize }}
+        >
+          {title}
+        </h2>
+        <p
+          className="text-gray-500 max-w-xl mx-auto"
+          style={{ fontSize: screenshotsStyle.subtitleSize }}
+        >
+          {subtitle}
+        </p>
       </div>
-      <div className="max-w-5xl mx-auto px-4 md:px-6">
-        <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth justify-start md:justify-center">
+      <div className="mx-auto px-4 md:px-6" style={{ maxWidth: screenshotsStyle.maxWidth }}>
+        <div className="flex overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth justify-start md:justify-center" style={{ gap: screenshotsStyle.gap }}>
           {items.map((item, idx) => (
             <div
               key={idx}

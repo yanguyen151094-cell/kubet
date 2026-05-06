@@ -3,16 +3,40 @@ import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
 export default function Features() {
   const { config } = useSiteConfigContext();
   const { label, title, subtitle, items } = config.features;
+  const { featuresStyle } = config;
 
   return (
-    <section id="features" className="w-full py-12 md:py-20">
-      <div className="max-w-5xl mx-auto px-4 md:px-6 text-center mb-12">
-        <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">{label}</p>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3">{title}</h2>
-        <p className="text-sm text-gray-500 max-w-xl mx-auto">{subtitle}</p>
+    <section
+      id="features"
+      className="w-full"
+      style={{
+        paddingTop: featuresStyle.paddingTop,
+        paddingBottom: featuresStyle.paddingBottom,
+        backgroundColor: featuresStyle.bgColor,
+      }}
+    >
+      <div className="mx-auto px-4 md:px-6 text-center mb-12" style={{ maxWidth: featuresStyle.maxWidth }}>
+        <p
+          className="font-semibold text-gray-500 uppercase tracking-wider mb-2"
+          style={{ fontSize: featuresStyle.labelSize }}
+        >
+          {label}
+        </p>
+        <h2
+          className="font-bold text-gray-900 mb-3"
+          style={{ fontSize: featuresStyle.titleSize }}
+        >
+          {title}
+        </h2>
+        <p
+          className="text-gray-500 max-w-xl mx-auto"
+          style={{ fontSize: featuresStyle.subtitleSize }}
+        >
+          {subtitle}
+        </p>
       </div>
       {items.map((item, idx) => (
-        <div key={idx} className="max-w-5xl mx-auto px-4 md:px-6 mb-8 md:mb-12 last:mb-0">
+        <div key={idx} className="mx-auto px-4 md:px-6 mb-8 md:mb-12 last:mb-0" style={{ maxWidth: featuresStyle.maxWidth }}>
           <div className={`flex flex-col ${item.imagePosition === 'right' ? 'md:flex-row-reverse' : 'md:flex-row'} gap-6 md:gap-10 items-center`}>
             <div className="flex-1 text-center md:text-left">
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 md:mb-3">{item.title}</h3>

@@ -4,17 +4,40 @@ import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
 export default function FAQ() {
   const { config } = useSiteConfigContext();
   const { label, title, subtitle, items, image } = config.faq;
+  const { faqStyle } = config;
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="w-full py-12 md:py-20">
-      <div className="max-w-5xl mx-auto px-4 md:px-6 text-center mb-10">
-        <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">{label}</p>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3">{title}</h2>
-        <p className="text-sm text-gray-500 max-w-xl mx-auto">{subtitle}</p>
+    <section
+      className="w-full"
+      style={{
+        paddingTop: faqStyle.paddingTop,
+        paddingBottom: faqStyle.paddingBottom,
+        backgroundColor: faqStyle.bgColor,
+      }}
+    >
+      <div className="mx-auto px-4 md:px-6 text-center mb-10" style={{ maxWidth: faqStyle.maxWidth }}>
+        <p
+          className="font-semibold text-gray-500 uppercase tracking-wider mb-2"
+          style={{ fontSize: faqStyle.labelSize }}
+        >
+          {label}
+        </p>
+        <h2
+          className="font-bold text-gray-900 mb-3"
+          style={{ fontSize: faqStyle.titleSize }}
+        >
+          {title}
+        </h2>
+        <p
+          className="text-gray-500 max-w-xl mx-auto"
+          style={{ fontSize: faqStyle.subtitleSize }}
+        >
+          {subtitle}
+        </p>
       </div>
-      <div className="max-w-5xl mx-auto px-4 md:px-6">
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8 lg:gap-12 items-start">
+      <div className="mx-auto px-4 md:px-6" style={{ maxWidth: faqStyle.maxWidth }}>
+        <div className="flex flex-col md:flex-row items-start" style={{ gap: faqStyle.gap }}>
           <div className="md:w-2/5 flex justify-center w-full">
             <img
               src={image}

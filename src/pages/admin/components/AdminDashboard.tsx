@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
 import ImageUpload from '@/components/ImageUpload';
+import SectionStyleEditor from './SectionStyleEditor';
 
 interface Tab {
   id: string;
@@ -42,6 +43,15 @@ export default function AdminDashboard() {
     updateNav,
     updateAuthRegister,
     updateAuthLogin,
+    updateHeroStyle,
+    updateHowItWorksStyle,
+    updateFeaturesStyle,
+    updateStatsStyle,
+    updateScreenshotsStyle,
+    updateTestimonialsStyle,
+    updateFAQStyle,
+    updateContactStyle,
+    updateFooterStyle,
     resetConfig,
   } = useSiteConfigContext();
 
@@ -246,6 +256,17 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">URL Google Sheet (API endpoint)</label>
+                    <input
+                      type="url"
+                      value={config.authRegister.gSheetUrl}
+                      onChange={(e) => updateAuthRegister({ gSheetUrl: e.target.value })}
+                      placeholder="https://script.google.com/macros/s/.../exec"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Điền URL Google Apps Script Web App để nhận dữ liệu đăng ký</p>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
                     <input
@@ -396,6 +417,17 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">URL Google Sheet (API endpoint)</label>
+                    <input
+                      type="url"
+                      value={config.authLogin.gSheetUrl}
+                      onChange={(e) => updateAuthLogin({ gSheetUrl: e.target.value })}
+                      placeholder="https://script.google.com/macros/s/.../exec"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Điền URL Google Apps Script Web App để nhận dữ liệu đăng nhập</p>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
                     <input
@@ -514,51 +546,63 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'hero' && (
-            <div className="bg-white rounded-lg p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
-                <input
-                  type="text"
-                  value={config.hero.title}
-                  onChange={(e) => updateHero({ title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-                <textarea
-                  value={config.hero.subtitle}
-                  onChange={(e) => updateHero({ subtitle: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500 resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nút bấm</label>
-                <input
-                  type="text"
-                  value={config.hero.buttonText}
-                  onChange={(e) => updateHero({ buttonText: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <ImageUpload
-                label="Ảnh điện thoại"
-                value={config.hero.phoneImage}
-                onChange={(url) => updateHero({ phoneImage: url })}
-                helpText="Chọn ảnh điện thoại/mockup từ máy tính"
+            <div className="bg-white rounded-lg p-6 space-y-6">
+              <SectionStyleEditor
+                label="Kích thước & giao diện Hero"
+                style={config.heroStyle}
+                onChange={updateHeroStyle}
               />
-              <ImageUpload
-                label="Ảnh logo hero"
-                value={config.hero.logoImage}
-                onChange={(url) => updateHero({ logoImage: url })}
-                helpText="Chọn logo hiển thị trong hero section"
-              />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
+                  <input
+                    type="text"
+                    value={config.hero.title}
+                    onChange={(e) => updateHero({ title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+                  <textarea
+                    value={config.hero.subtitle}
+                    onChange={(e) => updateHero({ subtitle: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nút bấm</label>
+                  <input
+                    type="text"
+                    value={config.hero.buttonText}
+                    onChange={(e) => updateHero({ buttonText: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <ImageUpload
+                  label="Ảnh điện thoại"
+                  value={config.hero.phoneImage}
+                  onChange={(url) => updateHero({ phoneImage: url })}
+                  helpText="Chọn ảnh điện thoại/mockup từ máy tính"
+                />
+                <ImageUpload
+                  label="Ảnh logo hero"
+                  value={config.hero.logoImage}
+                  onChange={(url) => updateHero({ logoImage: url })}
+                  helpText="Chọn logo hiển thị trong hero section"
+                />
+              </div>
             </div>
           )}
 
           {activeTab === 'howitworks' && (
             <div className="bg-white rounded-lg p-6 space-y-6">
+              <SectionStyleEditor
+                label="Kích thước & giao diện Cách hoạt động"
+                style={config.howItWorksStyle}
+                onChange={updateHowItWorksStyle}
+              />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
@@ -627,6 +671,11 @@ export default function AdminDashboard() {
 
           {activeTab === 'features' && (
             <div className="bg-white rounded-lg p-6 space-y-6">
+              <SectionStyleEditor
+                label="Kích thước & giao diện Tính năng"
+                style={config.featuresStyle}
+                onChange={updateFeaturesStyle}
+              />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
@@ -714,7 +763,12 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'stats' && (
-            <div className="bg-white rounded-lg p-6 space-y-4">
+            <div className="bg-white rounded-lg p-6 space-y-6">
+              <SectionStyleEditor
+                label="Kích thước & giao diện Thống kê"
+                style={config.statsStyle}
+                onChange={updateStatsStyle}
+              />
               {config.stats.items.map((stat, idx) => (
                 <div key={idx} className="border border-gray-100 rounded-md p-4 space-y-3">
                   <h4 className="text-sm font-semibold text-gray-700">Stat {idx + 1}</h4>
@@ -745,6 +799,11 @@ export default function AdminDashboard() {
 
           {activeTab === 'screenshots' && (
             <div className="bg-white rounded-lg p-6 space-y-6">
+              <SectionStyleEditor
+                label="Kích thước & giao diện Screenshot"
+                style={config.screenshotsStyle}
+                onChange={updateScreenshotsStyle}
+              />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
@@ -798,6 +857,11 @@ export default function AdminDashboard() {
 
           {activeTab === 'testimonials' && (
             <div className="bg-white rounded-lg p-6 space-y-6">
+              <SectionStyleEditor
+                label="Kích thước & giao diện Đánh giá"
+                style={config.testimonialsStyle}
+                onChange={updateTestimonialsStyle}
+              />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
@@ -966,6 +1030,11 @@ export default function AdminDashboard() {
 
           {activeTab === 'faq' && (
             <div className="bg-white rounded-lg p-6 space-y-6">
+              <SectionStyleEditor
+                label="Kích thước & giao diện FAQ"
+                style={config.faqStyle}
+                onChange={updateFAQStyle}
+              />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
@@ -1027,112 +1096,126 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'contact' && (
-            <div className="bg-white rounded-lg p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
-                <input
-                  type="text"
-                  value={config.contact.title}
-                  onChange={(e) => updateContact({ title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
-                <input
-                  type="text"
-                  value={config.contact.subtitle}
-                  onChange={(e) => updateContact({ subtitle: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-                <textarea
-                  value={config.contact.description}
-                  onChange={(e) => updateContact({ description: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500 resize-none"
-                />
-              </div>
-              <ImageUpload
-                label="Ảnh minh họa liên hệ"
-                value={config.contact.formImage}
-                onChange={(url) => updateContact({ formImage: url })}
+            <div className="bg-white rounded-lg p-6 space-y-6">
+              <SectionStyleEditor
+                label="Kích thước & giao diện Liên hệ"
+                style={config.contactStyle}
+                onChange={updateContactStyle}
               />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tiêu đề</label>
+                  <input
+                    type="text"
+                    value={config.contact.title}
+                    onChange={(e) => updateContact({ title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+                  <input
+                    type="text"
+                    value={config.contact.subtitle}
+                    onChange={(e) => updateContact({ subtitle: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+                  <textarea
+                    value={config.contact.description}
+                    onChange={(e) => updateContact({ description: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                  />
+                </div>
+                <ImageUpload
+                  label="Ảnh minh họa liên hệ"
+                  value={config.contact.formImage}
+                  onChange={(url) => updateContact({ formImage: url })}
+                />
+              </div>
             </div>
           )}
 
           {activeTab === 'footer' && (
-            <div className="bg-white rounded-lg p-6 space-y-4">
-              <ImageUpload
-                label="Logo Footer"
-                value={config.footer.logo}
-                onChange={(url) => updateFooter({ logo: url })}
+            <div className="bg-white rounded-lg p-6 space-y-6">
+              <SectionStyleEditor
+                label="Kích thước & giao diện Footer"
+                style={config.footerStyle}
+                onChange={updateFooterStyle}
               />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
-                <input
-                  type="text"
-                  value={config.footer.address}
-                  onChange={(e) => updateFooter({ address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+              <div className="space-y-4">
+                <ImageUpload
+                  label="Logo Footer"
+                  value={config.footer.logo}
+                  onChange={(url) => updateFooter({ logo: url })}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Điện thoại</label>
-                <input
-                  type="text"
-                  value={config.footer.phone}
-                  onChange={(e) => updateFooter({ phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
+                  <input
+                    type="text"
+                    value={config.footer.address}
+                    onChange={(e) => updateFooter({ address: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Điện thoại</label>
+                  <input
+                    type="text"
+                    value={config.footer.phone}
+                    onChange={(e) => updateFooter({ phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="text"
+                    value={config.footer.email}
+                    onChange={(e) => updateFooter({ email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Links cột 1 (phân cách bằng dấu phẩy)</label>
+                  <input
+                    type="text"
+                    value={config.footer.links1.join(', ')}
+                    onChange={(e) => updateFooter({ links1: e.target.value.split(',').map((l) => l.trim()) })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Links cột 2 (phân cách bằng dấu phẩy)</label>
+                  <input
+                    type="text"
+                    value={config.footer.links2.join(', ')}
+                    onChange={(e) => updateFooter({ links2: e.target.value.split(',').map((l) => l.trim()) })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <ImageUpload
+                  label="App Store Image"
+                  value={config.footer.appStoreImage}
+                  onChange={(url) => updateFooter({ appStoreImage: url })}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="text"
-                  value={config.footer.email}
-                  onChange={(e) => updateFooter({ email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                <ImageUpload
+                  label="Play Store Image"
+                  value={config.footer.playStoreImage}
+                  onChange={(url) => updateFooter({ playStoreImage: url })}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Links cột 1 (phân cách bằng dấu phẩy)</label>
-                <input
-                  type="text"
-                  value={config.footer.links1.join(', ')}
-                  onChange={(e) => updateFooter({ links1: e.target.value.split(',').map((l) => l.trim()) })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Links cột 2 (phân cách bằng dấu phẩy)</label>
-                <input
-                  type="text"
-                  value={config.footer.links2.join(', ')}
-                  onChange={(e) => updateFooter({ links2: e.target.value.split(',').map((l) => l.trim()) })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <ImageUpload
-                label="App Store Image"
-                value={config.footer.appStoreImage}
-                onChange={(url) => updateFooter({ appStoreImage: url })}
-              />
-              <ImageUpload
-                label="Play Store Image"
-                value={config.footer.playStoreImage}
-                onChange={(url) => updateFooter({ playStoreImage: url })}
-              />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Copyright</label>
-                <input
-                  type="text"
-                  value={config.footer.copyright}
-                  onChange={(e) => updateFooter({ copyright: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Copyright</label>
+                  <input
+                    type="text"
+                    value={config.footer.copyright}
+                    onChange={(e) => updateFooter({ copyright: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
             </div>
           )}

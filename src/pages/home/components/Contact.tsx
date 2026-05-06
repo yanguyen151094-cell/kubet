@@ -4,6 +4,7 @@ import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
 export default function Contact() {
   const { config } = useSiteConfigContext();
   const { title, subtitle, description, formImage } = config.contact;
+  const { contactStyle } = config;
 
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({ full_name: '', email: '', phone: '', note: '' });
@@ -21,14 +22,37 @@ export default function Contact() {
   }, []);
 
   return (
-    <section id="contact" className="w-full py-12 md:py-20 bg-gray-50/50">
-      <div className="max-w-5xl mx-auto px-4 md:px-6 text-center mb-10">
-        <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">{subtitle}</p>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3">{title}</h2>
-        <p className="text-sm text-gray-500 max-w-xl mx-auto">{description}</p>
+    <section
+      id="contact"
+      className="w-full"
+      style={{
+        paddingTop: contactStyle.paddingTop,
+        paddingBottom: contactStyle.paddingBottom,
+        backgroundColor: contactStyle.bgColor,
+      }}
+    >
+      <div className="mx-auto px-4 md:px-6 text-center mb-10" style={{ maxWidth: contactStyle.maxWidth }}>
+        <p
+          className="font-semibold text-gray-500 uppercase tracking-wider mb-2"
+          style={{ fontSize: contactStyle.labelSize }}
+        >
+          {subtitle}
+        </p>
+        <h2
+          className="font-bold text-gray-900 mb-3"
+          style={{ fontSize: contactStyle.titleSize }}
+        >
+          {title}
+        </h2>
+        <p
+          className="text-gray-500 max-w-xl mx-auto"
+          style={{ fontSize: contactStyle.subtitleSize }}
+        >
+          {description}
+        </p>
       </div>
-      <div className="max-w-5xl mx-auto px-4 md:px-6">
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8 lg:gap-12 items-center">
+      <div className="mx-auto px-4 md:px-6" style={{ maxWidth: contactStyle.maxWidth }}>
+        <div className="flex flex-col md:flex-row items-center" style={{ gap: contactStyle.gap }}>
           <div className="md:w-1/2 w-full">
             <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
               <input

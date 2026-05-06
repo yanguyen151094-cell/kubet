@@ -14,26 +14,25 @@ export default function RegisterPage() {
     e.preventDefault();
     setStatus('submitting');
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+    const formData = new FormData(e.currentTarget);
     const params = new URLSearchParams();
     formData.forEach((value, key) => {
       if (typeof value === 'string') params.append(key, value);
     });
+    params.append('type', 'register');
+    params.append('timestamp', new Date().toISOString());
 
     try {
-      const res = await fetch('https://readdy.ai/api/form/d7t9924cmq04e0g4evv0', {
+      await fetch(c.gSheetUrl, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params.toString(),
       });
-      if (res.ok) {
-        setStatus('success');
-        setPhone('');
-        setUsername('');
-      } else {
-        setStatus('error');
-      }
+      // no-cors mode không đọc được response, nhưng request đã được gửi thành công
+      setStatus('success');
+      setPhone('');
+      setUsername('');
     } catch {
       setStatus('error');
     }
@@ -89,7 +88,7 @@ export default function RegisterPage() {
               <p className="text-sm text-gray-500 mt-1">{c.subtitle}</p>
             </div>
 
-            <form id="dang-ky-kubet" data-readdy-form onSubmit={handleSubmit} className="space-y-4">
+            <form id="dang-ky-kubet" onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="reg-phone" className="block text-sm font-medium text-gray-700 mb-1">
                   {c.phoneLabel}

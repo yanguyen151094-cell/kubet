@@ -1,10 +1,51 @@
 import type { SiteConfig } from '@/hooks/useSiteConfig';
 
 export const defaultSiteConfig: SiteConfig = {
-  version: 2,
+  version: 3,
   logo: 'https://salekit.page/assets/images/logo/logo.png',
   logoWidth: 380,
   logoHeight: 86,
+  heroStyle: {
+    paddingTop: 40, paddingBottom: 64, gap: 24, maxWidth: 896,
+    titleSize: 36, subtitleSize: 16, labelSize: 14,
+  },
+  howItWorksStyle: {
+    paddingTop: 80, paddingBottom: 80, gap: 24, maxWidth: 1024,
+    titleSize: 30, subtitleSize: 14, labelSize: 14,
+    bgColor: '#f9fafb',
+  },
+  featuresStyle: {
+    paddingTop: 80, paddingBottom: 80, gap: 40, maxWidth: 1024,
+    titleSize: 30, subtitleSize: 14, labelSize: 14,
+  },
+  statsStyle: {
+    paddingTop: 64, paddingBottom: 64, gap: 24, maxWidth: 1024,
+    titleSize: 30, subtitleSize: 14, labelSize: 14,
+    bgColor: '#10b981',
+  },
+  screenshotsStyle: {
+    paddingTop: 80, paddingBottom: 80, gap: 16, maxWidth: 1024,
+    titleSize: 30, subtitleSize: 14, labelSize: 14,
+    bgColor: '#f9fafb',
+  },
+  testimonialsStyle: {
+    paddingTop: 80, paddingBottom: 80, gap: 24, maxWidth: 1024,
+    titleSize: 30, subtitleSize: 14, labelSize: 14,
+  },
+  faqStyle: {
+    paddingTop: 80, paddingBottom: 80, gap: 24, maxWidth: 1024,
+    titleSize: 30, subtitleSize: 14, labelSize: 14,
+  },
+  contactStyle: {
+    paddingTop: 80, paddingBottom: 80, gap: 24, maxWidth: 1024,
+    titleSize: 30, subtitleSize: 14, labelSize: 14,
+    bgColor: '#f9fafb',
+  },
+  footerStyle: {
+    paddingTop: 56, paddingBottom: 56, gap: 32, maxWidth: 1024,
+    titleSize: 14, subtitleSize: 12, labelSize: 12,
+    bgColor: '#f3f4f6',
+  },
   nav: {
     howItWorks: 'Cách hoạt động',
     features: 'Tính năng',
@@ -177,6 +218,7 @@ export const defaultSiteConfig: SiteConfig = {
     authLogo: 'https://readdy.ai/api/search-image?query=Kubet%20casino%20official%20brand%20logo%20featuring%20bold%20uppercase%20KU%20letters%20in%20modern%20sans-serif%20font%20with%20orange%20and%20blue%20gradient%20colors%20on%20clean%20transparent%20background%20minimalist%20sports%20betting%20company%20identity%20design&width=300&height=120&seq=kubetlogo1&orientation=landscape',
     authLogoWidth: 280,
     authLogoHeight: 100,
+    gSheetUrl: 'https://script.google.com/macros/s/AKfycbxCBir6EBko2Dg_mVaYaujK-YXVG7NisCT8lXoETHLFXa_7Dk6dnr2Vu80CpoAZJXV2/exec',
   },
   authLogin: {
     title: 'Đăng nhập',
@@ -195,6 +237,7 @@ export const defaultSiteConfig: SiteConfig = {
     authLogo: 'https://readdy.ai/api/search-image?query=Kubet%20casino%20official%20brand%20logo%20featuring%20bold%20uppercase%20KU%20letters%20in%20modern%20sans-serif%20font%20with%20orange%20and%20blue%20gradient%20colors%20on%20clean%20transparent%20background%20minimalist%20sports%20betting%20company%20identity%20design&width=300&height=120&seq=kubetlogo1&orientation=landscape',
     authLogoWidth: 280,
     authLogoHeight: 100,
+    gSheetUrl: 'https://script.google.com/macros/s/AKfycbxCBir6EBko2Dg_mVaYaujK-YXVG7NisCT8lXoETHLFXa_7Dk6dnr2Vu80CpoAZJXV2/exec',
   },
   footer: {
     logo: 'https://salekit.page/assets/images/logo/logo.png',

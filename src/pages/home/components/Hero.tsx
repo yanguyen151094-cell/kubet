@@ -2,10 +2,21 @@ import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
 
 export default function Hero() {
   const { config } = useSiteConfigContext();
+  const { heroStyle } = config;
 
   return (
-    <section className="w-full py-10 md:py-16">
-      <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
+    <section
+      className="w-full"
+      style={{
+        paddingTop: heroStyle.paddingTop,
+        paddingBottom: heroStyle.paddingBottom,
+        backgroundColor: heroStyle.bgColor,
+      }}
+    >
+      <div
+        className="mx-auto px-4 md:px-6 text-center"
+        style={{ maxWidth: heroStyle.maxWidth, gap: heroStyle.gap }}
+      >
         <div className="flex justify-center mb-8">
           <img
             src={config.hero.logoImage}
@@ -15,10 +26,16 @@ export default function Hero() {
             className="h-12 w-auto object-contain"
           />
         </div>
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 leading-tight mb-4 md:mb-6">
+        <h1
+          className="font-bold text-gray-900 leading-tight mb-4 md:mb-6"
+          style={{ fontSize: heroStyle.titleSize }}
+        >
           {config.hero.title}
         </h1>
-        <p className="text-sm md:text-base text-gray-500 max-w-2xl mx-auto mb-6 md:mb-8 leading-relaxed">
+        <p
+          className="text-gray-500 max-w-2xl mx-auto mb-6 md:mb-8 leading-relaxed"
+          style={{ fontSize: heroStyle.subtitleSize }}
+        >
           {config.hero.subtitle}
         </p>
         <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 md:px-8 py-3 rounded-md font-medium transition-colors whitespace-nowrap cursor-pointer">

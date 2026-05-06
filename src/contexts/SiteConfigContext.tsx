@@ -19,6 +19,15 @@ interface SiteConfigContextType {
   updateNav: (nav: Partial<SiteConfig['nav']>) => void;
   updateAuthRegister: (auth: Partial<AuthPageConfig>) => void;
   updateAuthLogin: (auth: Partial<AuthPageConfig>) => void;
+  updateHeroStyle: (style: Partial<SiteConfig['heroStyle']>) => void;
+  updateHowItWorksStyle: (style: Partial<SiteConfig['howItWorksStyle']>) => void;
+  updateFeaturesStyle: (style: Partial<SiteConfig['featuresStyle']>) => void;
+  updateStatsStyle: (style: Partial<SiteConfig['statsStyle']>) => void;
+  updateScreenshotsStyle: (style: Partial<SiteConfig['screenshotsStyle']>) => void;
+  updateTestimonialsStyle: (style: Partial<SiteConfig['testimonialsStyle']>) => void;
+  updateFAQStyle: (style: Partial<SiteConfig['faqStyle']>) => void;
+  updateContactStyle: (style: Partial<SiteConfig['contactStyle']>) => void;
+  updateFooterStyle: (style: Partial<SiteConfig['footerStyle']>) => void;
   resetConfig: () => void;
 }
 

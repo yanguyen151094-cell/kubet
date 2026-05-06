@@ -46,6 +46,17 @@ export interface FAQItem {
   answer: string;
 }
 
+export interface SectionStyle {
+  paddingTop: number;
+  paddingBottom: number;
+  gap: number;
+  maxWidth: number;
+  titleSize: number;
+  subtitleSize: number;
+  labelSize: number;
+  bgColor?: string;
+}
+
 export interface AuthPageConfig {
   title: string;
   subtitle: string;
@@ -63,6 +74,7 @@ export interface AuthPageConfig {
   authLogo: string;
   authLogoWidth: number;
   authLogoHeight: number;
+  gSheetUrl: string;
 }
 
 export interface SiteConfig {
@@ -70,6 +82,15 @@ export interface SiteConfig {
   logo: string;
   logoWidth: number;
   logoHeight: number;
+  heroStyle: SectionStyle;
+  howItWorksStyle: SectionStyle;
+  featuresStyle: SectionStyle;
+  statsStyle: SectionStyle;
+  screenshotsStyle: SectionStyle;
+  testimonialsStyle: SectionStyle;
+  faqStyle: SectionStyle;
+  contactStyle: SectionStyle;
+  footerStyle: SectionStyle;
   nav: {
     howItWorks: string;
     features: string;
@@ -282,6 +303,42 @@ export function useSiteConfig() {
     setConfigState((prev) => ({ ...prev, authLogin: { ...prev.authLogin, ...auth } }));
   }, []);
 
+  const updateHeroStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfigState((prev) => ({ ...prev, heroStyle: { ...prev.heroStyle, ...style } }));
+  }, []);
+
+  const updateHowItWorksStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfigState((prev) => ({ ...prev, howItWorksStyle: { ...prev.howItWorksStyle, ...style } }));
+  }, []);
+
+  const updateFeaturesStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfigState((prev) => ({ ...prev, featuresStyle: { ...prev.featuresStyle, ...style } }));
+  }, []);
+
+  const updateStatsStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfigState((prev) => ({ ...prev, statsStyle: { ...prev.statsStyle, ...style } }));
+  }, []);
+
+  const updateScreenshotsStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfigState((prev) => ({ ...prev, screenshotsStyle: { ...prev.screenshotsStyle, ...style } }));
+  }, []);
+
+  const updateTestimonialsStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfigState((prev) => ({ ...prev, testimonialsStyle: { ...prev.testimonialsStyle, ...style } }));
+  }, []);
+
+  const updateFAQStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfigState((prev) => ({ ...prev, faqStyle: { ...prev.faqStyle, ...style } }));
+  }, []);
+
+  const updateContactStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfigState((prev) => ({ ...prev, contactStyle: { ...prev.contactStyle, ...style } }));
+  }, []);
+
+  const updateFooterStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfigState((prev) => ({ ...prev, footerStyle: { ...prev.footerStyle, ...style } }));
+  }, []);
+
   const resetConfig = useCallback(() => {
     setConfigState(defaultSiteConfig);
     localStorage.removeItem(STORAGE_KEY);
@@ -304,6 +361,15 @@ export function useSiteConfig() {
     updateNav,
     updateAuthRegister,
     updateAuthLogin,
+    updateHeroStyle,
+    updateHowItWorksStyle,
+    updateFeaturesStyle,
+    updateStatsStyle,
+    updateScreenshotsStyle,
+    updateTestimonialsStyle,
+    updateFAQStyle,
+    updateContactStyle,
+    updateFooterStyle,
     resetConfig,
   };
 }
