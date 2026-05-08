@@ -4,6 +4,8 @@ import type { SiteConfig, HowItWorkItem, FeatureItem, StatItem, ScreenshotItem, 
 
 interface SiteConfigContextType {
   config: SiteConfig;
+  loading: boolean;
+  error: string | null;
   setConfig: (config: Partial<SiteConfig>) => void;
   updateHero: (hero: Partial<SiteConfig['hero']>) => void;
   updateHowItWorks: (howItWorks: Partial<SiteConfig['howItWorks']>) => void;

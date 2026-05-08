@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
+import { supabase } from '@/lib/supabase';
+import { defaultSiteConfig } from '@/mocks/siteConfig';
 import ImageUpload from '@/components/ImageUpload';
 import SectionStyleEditor from './SectionStyleEditor';
 
@@ -57,12 +59,44 @@ export default function AdminDashboard() {
 
   const [activeTab, setActiveTab] = useState('hero');
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleSave = useCallback(() => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }, []);
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    try {
+      const { error: saveErr } = await supabase
+        .from('site_config')
+        .upsert({ id: 1, config_data: config, updated_at: new Date().toISOString() });
+
+      if (saveErr) {
+        console.error('Supabase save error:', saveErr);
+        setSaved(false);
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+    } finally {
+      setSaving(false);
+    }
+  }, [config]);
+
+  const handleReset = useCallback(async () => {
+    if (!window.confirm('Bạn có chắc muốn reset về mặc định? Tất cả thay đổi sẽ bị mất.')) return;
+    
+    resetConfig();
+    try {
+      await supabase
+        .from('site_config')
+        .upsert({ id: 1, config_data: defaultSiteConfig, updated_at: new Date().toISOString() });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Reset error:', err);
+    }
+  }, [resetConfig]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -132,12 +166,13 @@ export default function AdminDashboard() {
               )}
               <button
                 onClick={handleSave}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap cursor-pointer"
+                disabled={saving}
+                className={`bg-emerald-500 hover:bg-emerald-600 text-white px-3 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap cursor-pointer ${saving ? 'opacity-70' : ''}`}
               >
-                Lưu
+                {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
               <button
-                onClick={resetConfig}
+                onClick={handleReset}
                 className="text-xs md:text-sm text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
               >
                 Reset

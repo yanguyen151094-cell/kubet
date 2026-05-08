@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
 import { defaultSiteConfig } from '@/mocks/siteConfig';
 
 export interface HowItWorkItem {
@@ -166,7 +167,6 @@ export interface SiteConfig {
 }
 
 const STORAGE_KEY = 'salekit_site_config_v2';
-const OLD_STORAGE_KEY = 'salekit_site_config';
 
 function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = { ...target };
@@ -183,37 +183,140 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
   return result;
 }
 
-function loadConfig(): SiteConfig {
-  try {
-    // Xóa key cũ nếu còn
-    localStorage.removeItem(OLD_STORAGE_KEY);
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored) as Record<string, unknown>;
-      // Nếu version khác hoặc không có, xóa và dùng default mới
-      if (!parsed.version || (parsed.version as number) < (defaultSiteConfig.version as number)) {
-        localStorage.removeItem(STORAGE_KEY);
-        return defaultSiteConfig;
-      }
-      const merged = deepMerge(defaultSiteConfig as unknown as Record<string, unknown>, parsed);
-      return merged as SiteConfig;
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return defaultSiteConfig;
+function mergeWithDefault(stored: Record<string, unknown>): SiteConfig {
+  const merged = deepMerge(defaultSiteConfig as unknown as Record<string, unknown>, stored);
+  return merged as SiteConfig;
 }
 
 export function useSiteConfig() {
-  const [config, setConfigState] = useState<SiteConfig>(loadConfig);
+  const [config, setConfigState] = useState<SiteConfig>(() => mergeWithDefault({}));
+  const [loading, setLoading] = useState(true);
+  const [dbReady, setDbReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // Load from Supabase on mount
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setDbReady(false);
+
+    (async () => {
+      try {
+        // 1. Try Supabase
+        const { data, error: dbError } = await supabase
+          .from('site_config')
+          .select('config_data')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (!cancelled) {
+          if (dbError) {
+            console.error('Supabase load error:', dbError);
+            setError(dbError.message);
+            // Fallback to localStorage
+            try {
+              const cached = localStorage.getItem(STORAGE_KEY);
+              if (cached) {
+                const parsed = JSON.parse(cached) as Record<string, unknown>;
+                setConfigState(mergeWithDefault(parsed));
+              }
+            } catch {
+              // ignore parse errors
+            }
+          } else if (data && data.config_data && Object.keys(data.config_data).length > 0) {
+            const merged = mergeWithDefault(data.config_data as Record<string, unknown>);
+            setConfigState(merged);
+            // Also sync to localStorage as fallback cache
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            } catch {
+              // ignore storage errors
+            }
+          } else {
+            // No DB config yet - use default and also save default to DB
+            setConfigState(defaultSiteConfig);
+            // Seed default config into DB
+            try {
+              const { error: seedErr } = await supabase
+                .from('site_config')
+                .upsert({ id: 1, config_data: defaultSiteConfig, updated_at: new Date().toISOString() });
+              if (seedErr) console.error('Seed default config error:', seedErr);
+            } catch (seedErr) {
+              console.error('Seed default config error:', seedErr);
+            }
+          }
+          setDbReady(true);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Config load error:', err);
+          setError('Không thể tải cấu hình từ server');
+          // Fallback to localStorage
+          try {
+            const cached = localStorage.getItem(STORAGE_KEY);
+            if (cached) {
+              const parsed = JSON.parse(cached) as Record<string, unknown>;
+              setConfigState(mergeWithDefault(parsed));
+            }
+          } catch {
+            // ignore parse errors
+          }
+          setDbReady(true);
+          setLoading(false);
+        }
+      }
+    })();
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel('site_config_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'site_config', filter: 'id=eq.1' },
+        (payload) => {
+          if (!cancelled && payload.new && (payload.new as Record<string, unknown>).config_data) {
+            const newData = (payload.new as Record<string, unknown>).config_data as Record<string, unknown>;
+            const merged = mergeWithDefault(newData);
+            setConfigState(merged);
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            } catch {
+              // ignore
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Save to Supabase whenever config changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!loading && dbReady) {
+        supabase
+          .from('site_config')
+          .upsert({ id: 1, config_data: config, updated_at: new Date().toISOString() })
+          .then(({ error: saveErr }) => {
+            if (saveErr) console.error('Supabase auto-save error:', saveErr);
+          });
+      }
+    }, 800);
+
+    // Also update localStorage as cache
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     } catch {
       // ignore storage errors
     }
-  }, [config]);
+
+    return () => clearTimeout(timer);
+  }, [config, loading, dbReady]);
 
   const setConfig = useCallback((newConfig: Partial<SiteConfig>) => {
     setConfigState((prev) => ({ ...prev, ...newConfig }));
@@ -342,10 +445,19 @@ export function useSiteConfig() {
   const resetConfig = useCallback(() => {
     setConfigState(defaultSiteConfig);
     localStorage.removeItem(STORAGE_KEY);
+    // Also reset in Supabase
+    supabase
+      .from('site_config')
+      .upsert({ id: 1, config_data: defaultSiteConfig, updated_at: new Date().toISOString() })
+      .then(({ error: resetErr }) => {
+        if (resetErr) console.error('Supabase reset error:', resetErr);
+      });
   }, []);
 
   return {
     config,
+    loading,
+    error,
     setConfig,
     updateHero,
     updateHowItWorks,
