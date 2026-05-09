@@ -24,7 +24,7 @@ function doPost(e) {
     
     // Mở spreadsheet theo ID (thay YOUR_SPREADSHEET_ID bằng ID thật)
     // Lấy ID từ URL: https://docs.google.com/spreadsheets/d/XXXXXXXX/edit
-    var spreadsheetId = 'YOUR_SPREADSHEET_ID';
+    var spreadsheetId = '1aIcPJzzLSQo9cvkPChcggzNeiyoS26ShMu5TSo05Z6A';
     var ss = SpreadsheetApp.openById(spreadsheetId);
     
     // Xác định sheet nào dựa vào type
