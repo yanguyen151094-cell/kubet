@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
-import type { SiteConfig, HowItWorkItem, FeatureItem, StatItem, ScreenshotItem, TestimonialItem, PricingItem, FAQItem, AuthPageConfig } from '@/hooks/useSiteConfig';
+import type { SiteConfig, HowItWorkItem, FeatureItem, StatItem, ScreenshotItem, TestimonialItem, PricingItem, FAQItem, AuthPageConfig, NavLink, BannerConfig, ArticleItem, ContentSection } from '@/hooks/useSiteConfig';
 
 interface SiteConfigContextType {
   config: SiteConfig;
@@ -17,6 +17,11 @@ interface SiteConfigContextType {
   updateContact: (contact: Partial<SiteConfig['contact']>) => void;
   updateFooter: (footer: Partial<SiteConfig['footer']>) => void;
   updateNav: (nav: Partial<SiteConfig['nav']>) => void;
+  updateSimpleNav: (nav: NavLink[]) => void;
+  updateSimpleNavItem: (index: number, item: Partial<NavLink>) => void;
+  updateSimpleBanner: (banner: Partial<BannerConfig>) => void;
+  updateSimpleContentSection: (index: number, section: Partial<ContentSection>) => void;
+  updateSimpleContentArticle: (sectionIndex: number, articleIndex: number, article: Partial<ArticleItem>) => void;
   updateAuthRegister: (auth: Partial<AuthPageConfig>) => void;
   updateAuthLogin: (auth: Partial<AuthPageConfig>) => void;
   updateHeroStyle: (style: Partial<SiteConfig['heroStyle']>) => void;
@@ -50,6 +55,11 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
     updateContact,
     updateFooter,
     updateNav,
+    updateSimpleNav,
+    updateSimpleNavItem,
+    updateSimpleBanner,
+    updateSimpleContentSection,
+    updateSimpleContentArticle,
     updateAuthRegister,
     updateAuthLogin,
     updateHeroStyle,
@@ -58,6 +68,7 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
     updateStatsStyle,
     updateScreenshotsStyle,
     updateTestimonialsStyle,
+    updatePricingStyle,
     updateFAQStyle,
     updateContactStyle,
     updateFooterStyle,
@@ -81,6 +92,11 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
         updateContact,
         updateFooter,
         updateNav,
+        updateSimpleNav,
+        updateSimpleNavItem,
+        updateSimpleBanner,
+        updateSimpleContentSection,
+        updateSimpleContentArticle,
         updateAuthRegister,
         updateAuthLogin,
         updateHeroStyle,
@@ -89,6 +105,7 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
         updateStatsStyle,
         updateScreenshotsStyle,
         updateTestimonialsStyle,
+        updatePricingStyle,
         updateFAQStyle,
         updateContactStyle,
         updateFooterStyle,

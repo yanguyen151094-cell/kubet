@@ -47,17 +47,6 @@ export interface FAQItem {
   answer: string;
 }
 
-export interface SectionStyle {
-  paddingTop: number;
-  paddingBottom: number;
-  gap: number;
-  maxWidth: number;
-  titleSize: number;
-  subtitleSize: number;
-  labelSize: number;
-  bgColor?: string;
-}
-
 export interface AuthPageConfig {
   title: string;
   subtitle: string;
@@ -99,6 +88,41 @@ export interface AuthPageConfig {
   passwordHideIcon: string;
 }
 
+export interface NavLink {
+  label: string;
+  href: string;
+}
+
+export interface BannerConfig {
+  image: string;
+  alt: string;
+  link?: string;
+}
+
+export interface ArticleItem {
+  title: string;
+  content: string;
+  image?: string;
+}
+
+export interface ContentSection {
+  id: string;
+  label: string;
+  title: string;
+  articles: ArticleItem[];
+}
+
+export interface SectionStyle {
+  paddingTop: number;
+  paddingBottom: number;
+  gap: number;
+  maxWidth: number;
+  titleSize: number;
+  subtitleSize: number;
+  labelSize: number;
+  bgColor?: string;
+}
+
 export interface SiteConfig {
   version: number;
   logo: string;
@@ -120,6 +144,13 @@ export interface SiteConfig {
     pricing: string;
     contact: string;
   };
+  // --- NEW simple homepage config ---
+  simpleNav: NavLink[];
+  simpleBanner: BannerConfig;
+  simpleContent: {
+    sections: ContentSection[];
+  };
+  // --- END NEW ---
   hero: {
     title: string;
     subtitle: string;
@@ -191,7 +222,7 @@ export interface SiteConfig {
 export function useSiteConfig() {
   const [config, setConfig] = useState<SiteConfig>(() => ({ ...defaultSiteConfig }));
 
-  // Luôn fetch từ DB khi mount - DB là nguồn sự thật
+  // Luôn fetch từ DB khi mount - DB là nguồn sự thật, nhưng merge với default để tránh thiếu trường mới
   useEffect(() => {
     supabase
       .from('site_config')
@@ -200,8 +231,15 @@ export function useSiteConfig() {
       .maybeSingle()
       .then(({ data, error }) => {
         if (!error && data?.config_data) {
-          const dbConfig = data.config_data as SiteConfig;
-          setConfig(dbConfig);
+          const dbConfig = data.config_data as Partial<SiteConfig>;
+          setConfig((prev) => ({
+            ...prev,
+            ...dbConfig,
+            // Giữ default cho các trường mới nếu DB cũ chưa có
+            simpleNav: dbConfig.simpleNav ?? prev.simpleNav,
+            simpleBanner: dbConfig.simpleBanner ?? prev.simpleBanner,
+            simpleContent: dbConfig.simpleContent ?? prev.simpleContent,
+          }));
         }
       })
       .catch(() => {
@@ -210,8 +248,8 @@ export function useSiteConfig() {
   }, []);
 
   // ---- Setters ----
-  const setConfigDirect = useCallback((newCfg: SiteConfig) => {
-    setConfig(newCfg);
+  const setConfigDirect = useCallback((partial: Partial<SiteConfig>) => {
+    setConfig((prev) => ({ ...prev, ...partial }));
   }, []);
 
   const updateHero = useCallback((hero: Partial<SiteConfig['hero']>) => {
@@ -289,6 +327,42 @@ export function useSiteConfig() {
   const updateNav = useCallback((nav: Partial<SiteConfig['nav']>) => {
     setConfig((prev) => ({ ...prev, nav: { ...prev.nav, ...nav } }));
   }, []);
+
+  // ---- NEW simple homepage setters ----
+  const updateSimpleNav = useCallback((nav: NavLink[]) => {
+    setConfig((prev) => ({ ...prev, simpleNav: nav }));
+  }, []);
+
+  const updateSimpleNavItem = useCallback((index: number, item: Partial<NavLink>) => {
+    setConfig((prev) => {
+      const items = [...prev.simpleNav];
+      items[index] = { ...items[index], ...item };
+      return { ...prev, simpleNav: items };
+    });
+  }, []);
+
+  const updateSimpleBanner = useCallback((banner: Partial<BannerConfig>) => {
+    setConfig((prev) => ({ ...prev, simpleBanner: { ...prev.simpleBanner, ...banner } }));
+  }, []);
+
+  const updateSimpleContentSection = useCallback((index: number, section: Partial<ContentSection>) => {
+    setConfig((prev) => {
+      const sections = [...prev.simpleContent.sections];
+      sections[index] = { ...sections[index], ...section };
+      return { ...prev, simpleContent: { ...prev.simpleContent, sections } };
+    });
+  }, []);
+
+  const updateSimpleContentArticle = useCallback((sectionIndex: number, articleIndex: number, article: Partial<ArticleItem>) => {
+    setConfig((prev) => {
+      const sections = [...prev.simpleContent.sections];
+      const articles = [...sections[sectionIndex].articles];
+      articles[articleIndex] = { ...articles[articleIndex], ...article };
+      sections[sectionIndex] = { ...sections[sectionIndex], articles };
+      return { ...prev, simpleContent: { ...prev.simpleContent, sections } };
+    });
+  }, []);
+  // ---- END NEW ----
 
   const updateAuthRegister = useCallback((auth: Partial<AuthPageConfig>) => {
     setConfig((prev) => ({ ...prev, authRegister: { ...prev.authRegister, ...auth } }));
@@ -373,6 +447,13 @@ export function useSiteConfig() {
     updateContact,
     updateFooter,
     updateNav,
+    // --- NEW ---
+    updateSimpleNav,
+    updateSimpleNavItem,
+    updateSimpleBanner,
+    updateSimpleContentSection,
+    updateSimpleContentArticle,
+    // --- END NEW ---
     updateAuthRegister,
     updateAuthLogin,
     updateHeroStyle,

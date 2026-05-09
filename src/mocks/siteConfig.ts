@@ -57,6 +57,72 @@ export const defaultSiteConfig: SiteConfig = {
     pricing: 'Bảng giá',
     contact: 'Liên hệ',
   },
+  // --- NEW simple homepage defaults ---
+  simpleNav: [
+    { label: 'Trang chủ', href: '/' },
+    { label: 'Giới thiệu', href: '/#gioi-thieu' },
+    { label: 'Tin tức', href: '/#tin-tuc' },
+    { label: 'Khuyến mãi', href: '/#khuyen-mai' },
+    { label: 'Liên hệ', href: '/#lien-he' },
+  ],
+  simpleBanner: {
+    image: 'https://salekit.page/assets/images/appexy/screen2.png',
+    alt: 'Banner chính',
+    link: '/dang-ky',
+  },
+  simpleContent: {
+    sections: [
+      {
+        id: 'gioi-thieu',
+        label: 'Về chúng tôi',
+        title: 'Giới thiệu',
+        articles: [
+          {
+            title: 'Giới thiệu tổng quan',
+            content: 'Chúng tôi là nền tảng hàng đầu cung cấp dịch vụ giải trí trực tuyến chất lượng cao. Với nhiều năm kinh nghiệm trong ngành, chúng tôi cam kết mang đến cho người dùng những trải nghiệm tuyệt vời nhất.',
+            image: 'https://readdy.ai/api/search-image?query=Modern%20luxury%20online%20entertainment%20platform%20interface%20with%20sleek%20dark%20theme%20dashboard%20showing%20vibrant%20game%20categories%20and%20promotional%20banners%2C%20professional%20UI%20design%20with%20gold%20accents%20on%20deep%20black%20background%2C%20premium%20digital%20casino%20atmosphere&width=800&height=400&seq=landingimg1&orientation=landscape',
+          },
+          {
+            title: 'Tầm nhìn và sứ mệnh',
+            content: 'Tầm nhìn của chúng tôi là trở thành nền tảng giải trí trực tuyến hàng đầu khu vực. Sứ mệnh của chúng tôi là cung cấp dịch vụ an toàn, công bằng và minh bạch cho mọi người dùng.',
+          },
+        ],
+      },
+      {
+        id: 'tin-tuc',
+        label: 'Tin tức mới',
+        title: 'Tin tức',
+        articles: [
+          {
+            title: 'Thông báo quan trọng',
+            content: 'Hệ thống vừa được nâng cấp với nhiều tính năng mới, giao diện thân thiện hơn và tốc độ xử lý nhanh hơn. Người dùng có thể trải nghiệm ngay từ hôm nay.',
+            image: 'https://readdy.ai/api/search-image?query=Futuristic%20digital%20technology%20upgrade%20announcement%20with%20glowing%20circuit%20board%20patterns%20and%20holographic%20interface%20elements%2C%20modern%20software%20system%20enhancement%20visualization%20on%20deep%20blue%20black%20gradient%20background&width=800&height=400&seq=landingimg3&orientation=landscape',
+          },
+          {
+            title: 'Cập nhật bảo mật',
+            content: 'Chúng tôi luôn đặt bảo mật của người dùng lên hàng đầu. Hệ thống mã hóa SSL 256-bit và xác thực hai lớp đảm bảo mọi thông tin cá nhân luôn được bảo vệ tuyệt đối.',
+          },
+        ],
+      },
+      {
+        id: 'khuyen-mai',
+        label: 'Khuyến mãi',
+        title: 'Khuyến mãi đặc biệt',
+        articles: [
+          {
+            title: 'Ưu đãi thành viên mới',
+            content: 'Đăng ký tài khoản mới ngay hôm nay để nhận ngay nhiều phần quà hấp dẫn. Chương trình chỉ áp dụng trong thời gian có hạn.',
+            image: 'https://readdy.ai/api/search-image?query=Exclusive%20VIP%20membership%20welcome%20bonus%20promotional%20banner%20with%20golden%20trophy%20and%20sparkling%20confetti%2C%20luxury%20rewards%20and%20gifts%20display%20on%20elegant%20dark%20red%20gradient%20background%2C%20premium%20casino%20promotion%20design&width=800&height=400&seq=landingimg2&orientation=landscape',
+          },
+          {
+            title: 'Hoàn trả hàng ngày',
+            content: 'Chương trình hoàn trả không giới hạn dành cho tất cả thành viên. Mỗi ngày đều có cơ hội nhận hoàn trả lên đến mức hấp dẫn.',
+          },
+        ],
+      },
+    ],
+  },
+  // --- END NEW ---
   hero: {
     title: 'Hãy xây dựng sản phẩm của bạn bằng ứng dụng Appexy.',
     subtitle: 'Nhưng quả thực, cả hai chúng ta đều buộc tội và đưa ra những kẻ đáng bị căm ghét, những kẻ bị nhu nhược và hư hỏng bởi sự tâng bốc của những thú vui hiện tại, những kẻ phải chịu đau đớn và rắc rối, và những điều tương tự, là do lỗi của chúng ta đã không chu cấp.',

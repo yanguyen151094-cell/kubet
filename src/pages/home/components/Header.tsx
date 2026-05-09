@@ -7,24 +7,30 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="w-full relative z-50">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
-        <a href="/" className="flex items-center">
+    <header className="w-full relative z-50 bg-white border-b border-gray-100">
+      <div className="w-full mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
+        {/* Logo */}
+        <a href="/" className="flex items-center shrink-0">
           <img
             src={config.logo}
-            alt="Salekit Logo"
+            alt="Logo"
             className="object-contain max-w-full"
             style={{ width: config.logoWidth, height: config.logoHeight }}
           />
         </a>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6">
-          <a href="/#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.howItWorks}</a>
-          <a href="/#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.features}</a>
-          <a href="/#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.pricing}</a>
-          <a href="/#contact" className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap">{config.nav.contact}</a>
-          <div className="flex items-center gap-3 ml-2">
+        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+          {(config.simpleNav ?? []).map((item, idx) => (
+            <a
+              key={idx}
+              href={item.href}
+              className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap"
+            >
+              {item.label}
+            </a>
+          ))}
+          <div className="flex items-center gap-2 ml-2">
             <Link
               to="/dang-nhap"
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap px-3 py-2 rounded-md hover:bg-gray-50"
@@ -33,14 +39,14 @@ export default function Header() {
             </Link>
             <Link
               to="/dang-ky"
-              className="text-sm bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors whitespace-nowrap"
+              className="text-sm bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors whitespace-nowrap"
             >
               Đăng ký
             </Link>
           </div>
         </nav>
 
-        {/* Mobile: 2 auth buttons + hamburger */}
+        {/* Mobile: auth buttons + hamburger */}
         <div className="flex md:hidden items-center gap-2">
           <Link
             to="/dang-nhap"
@@ -50,8 +56,7 @@ export default function Header() {
           </Link>
           <Link
             to="/dang-ky"
-            className="text-xs font-medium text-white px-2.5 py-1.5 rounded-md whitespace-nowrap"
-            style={{ backgroundColor: config.authRegister.accentColor || '#2196f3' }}
+            className="text-xs font-medium text-white px-2.5 py-1.5 rounded-md whitespace-nowrap bg-red-600"
           >
             Đăng ký
           </Link>
@@ -67,12 +72,18 @@ export default function Header() {
 
       {/* Mobile menu panel */}
       {menuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-sm">
+        <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 z-40">
           <nav className="flex flex-col px-4 py-3 gap-1">
-            <a href="/#how-it-works" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.howItWorks}</a>
-            <a href="/#features" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.features}</a>
-            <a href="/#pricing" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.pricing}</a>
-            <a href="/#contact" onClick={() => setMenuOpen(false)} className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap">{config.nav.contact}</a>
+            {(config.simpleNav ?? []).map((item, idx) => (
+              <a
+                key={idx}
+                href={item.href}
+                onClick={() => setMenuOpen(false)}
+                className="text-sm text-gray-700 hover:bg-gray-50 px-3 py-2.5 rounded-md transition-colors whitespace-nowrap"
+              >
+                {item.label}
+              </a>
+            ))}
           </nav>
         </div>
       )}
