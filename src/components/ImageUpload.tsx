@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 interface ImageUploadProps {
   value: string;
@@ -37,9 +37,17 @@ function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<s
 }
 
 export default function ImageUpload({ value, onChange, label, helpText }: ImageUploadProps) {
+  const [previewUrl, setPreviewUrl] = useState(value);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync preview with prop value when it changes externally (and is different)
+  useEffect(() => {
+    if (value !== previewUrl) {
+      setPreviewUrl(value);
+    }
+  }, [value]);
 
   const processFile = useCallback(
     async (file: File) => {
@@ -47,6 +55,7 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
       setUploading(true);
       try {
         const dataUrl = await resizeImage(file, 1200, 1200);
+        setPreviewUrl(dataUrl);
         onChange(dataUrl);
       } catch {
         // ignore
@@ -100,9 +109,9 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
         />
         {uploading ? (
           <span className="text-sm text-gray-500">Đang xử lý ảnh...</span>
-        ) : value ? (
+        ) : previewUrl ? (
           <div className="flex flex-col items-center gap-2">
-            <img src={value} alt="Preview" className="h-20 w-auto object-contain rounded-md" />
+            <img src={previewUrl} alt="Preview" className="h-20 w-auto object-contain rounded-md" />
             <span className="text-xs text-gray-500">Nhấn để thay đổi ảnh</span>
           </div>
         ) : (
@@ -114,17 +123,20 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
           </div>
         )}
       </div>
-      {value && !value.startsWith('data:') && (
+      {previewUrl && !previewUrl.startsWith('data:') && (
         <div className="flex items-center gap-2">
           <input
             type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
+            value={previewUrl}
+            onChange={(e) => {
+              setPreviewUrl(e.target.value);
+              onChange(e.target.value);
+            }}
             className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
           />
         </div>
       )}
-      {value && value.startsWith('data:') && (
+      {previewUrl && previewUrl.startsWith('data:') && (
         <p className="text-xs text-gray-400">Ảnh đã được lưu dưới dạng base64 (tự động resize)</p>
       )}
       {helpText && <p className="text-xs text-gray-400">{helpText}</p>}
