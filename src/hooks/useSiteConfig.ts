@@ -465,7 +465,7 @@ export function useSiteConfig() {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  // Save directly to Supabase - ALWAYS try DB, never permanently disable
+  // Save directly to Supabase via Edge Function - more reliable than client upsert
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const configToSave = data ?? configRef.current;
 
@@ -473,16 +473,20 @@ export function useSiteConfig() {
       // 1. Save to localStorage first for instant UI
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave)); } catch { /* ignore */ }
 
-      // 2. ALWAYS try to save to Supabase
-      console.log('[saveToDatabase] Saving to Supabase...');
-      const now = new Date().toISOString();
-      const { error: saveErr } = await supabase
-        .from('site_config')
-        .upsert({ id: 1, config_data: configToSave, updated_at: now }, { onConflict: 'id' });
+      // 2. Call Edge Function (bypasses RLS, more reliable)
+      console.log('[saveToDatabase] Calling edge function...');
+      const { data: result, error: fnErr } = await supabase.functions.invoke('update-site-config', {
+        body: { config_data: configToSave },
+      });
 
-      if (saveErr) {
-        console.error('[saveToDatabase] Save error:', saveErr);
-        return { success: false, error: saveErr.message, localOnly: true };
+      if (fnErr) {
+        console.error('[saveToDatabase] Edge function error:', fnErr);
+        return { success: false, error: fnErr.message || 'Edge function error', localOnly: true };
+      }
+
+      if (result && !result.success) {
+        console.error('[saveToDatabase] Edge function returned error:', result.error);
+        return { success: false, error: result.error || 'Unknown error', localOnly: true };
       }
 
       // 3. Trigger cross-tab sync
