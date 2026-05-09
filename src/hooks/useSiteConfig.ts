@@ -93,9 +93,11 @@ export interface NavLink {
 }
 
 export interface BannerConfig {
-  image: string;
+  images: string[];
   alt: string;
   link?: string;
+  autoPlay?: boolean;
+  interval?: number;
 }
 
 export interface ArticleItem {
@@ -223,7 +225,11 @@ function loadConfig(): SiteConfig {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<SiteConfig>;
-      return { ...defaultSiteConfig, ...parsed };
+      if (parsed.version === defaultSiteConfig.version) {
+        return { ...defaultSiteConfig, ...parsed };
+      }
+      // Version mismatch: clear stale config
+      localStorage.removeItem(LS_KEY);
     }
   } catch {
     // ignore parse errors

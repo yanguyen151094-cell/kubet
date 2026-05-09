@@ -1,8 +1,8 @@
 import type { SiteConfig } from '@/hooks/useSiteConfig';
 
 export const defaultSiteConfig: SiteConfig = {
-  version: 3,
-  logo: 'https://salekit.page/assets/images/logo/logo.png',
+  version: 9,
+  logo: 'https://public.readdy.ai/ai/img_res/84307c24-168c-4044-910d-f492d7fb5c09.png',
   logoWidth: 380,
   logoHeight: 86,
   heroStyle: {
@@ -66,9 +66,16 @@ export const defaultSiteConfig: SiteConfig = {
     { label: 'Liên hệ', href: '/#lien-he' },
   ],
   simpleBanner: {
-    image: 'https://salekit.page/assets/images/appexy/screen2.png',
+    images: [
+      'https://storage.readdy-site.link/project_files/b76e2517-3017-41c1-b5e9-94231aad9ced/cae71fed-7ef5-45be-97fb-ca8561c89c6a_photo_6338959790452707203_y.jpg?v=36a87b5f09ee775abc1e547872420a2c',
+      'https://storage.readdy-site.link/project_files/b76e2517-3017-41c1-b5e9-94231aad9ced/793285dc-d0c8-49da-8ff4-811e4c40bc07_photo_6338959790452707204_y.jpg?v=e69a975668ff0e65ea6bb131a8378cfa',
+      'https://storage.readdy-site.link/project_files/b76e2517-3017-41c1-b5e9-94231aad9ced/98d81a87-e0b0-4bc6-a959-fc408bf47382_photo_6338959790452707206_y.jpg?v=efa5b38e66cc1f1666bff24635e77279',
+      'https://storage.readdy-site.link/project_files/b76e2517-3017-41c1-b5e9-94231aad9ced/d78d68f3-3271-4352-8ead-b9f76c23b8c9_2f63231d-2137-4f79-8797-ddbedd70c6d0.png?v=0b1dc0ed6525be51345000060f67f6a6',
+    ],
     alt: 'Banner chính',
     link: '/dang-ky',
+    autoPlay: true,
+    interval: 4000,
   },
   simpleContent: {
     sections: [
@@ -80,7 +87,7 @@ export const defaultSiteConfig: SiteConfig = {
           {
             title: 'Giới thiệu tổng quan',
             content: 'Chúng tôi là nền tảng hàng đầu cung cấp dịch vụ giải trí trực tuyến chất lượng cao. Với nhiều năm kinh nghiệm trong ngành, chúng tôi cam kết mang đến cho người dùng những trải nghiệm tuyệt vời nhất.',
-            image: 'https://readdy.ai/api/search-image?query=Modern%20luxury%20online%20entertainment%20platform%20interface%20with%20sleek%20dark%20theme%20dashboard%20showing%20vibrant%20game%20categories%20and%20promotional%20banners%2C%20professional%20UI%20design%20with%20gold%20accents%20on%20deep%20black%20background%2C%20premium%20digital%20casino%20atmosphere&width=800&height=400&seq=landingimg1&orientation=landscape',
+            image: 'https://storage.readdy-site.link/project_files/b76e2517-3017-41c1-b5e9-94231aad9ced/793285dc-d0c8-49da-8ff4-811e4c40bc07_photo_6338959790452707204_y.jpg?v=e69a975668ff0e65ea6bb131a8378cfa',
           },
           {
             title: 'Tầm nhìn và sứ mệnh',
@@ -96,7 +103,7 @@ export const defaultSiteConfig: SiteConfig = {
           {
             title: 'Thông báo quan trọng',
             content: 'Hệ thống vừa được nâng cấp với nhiều tính năng mới, giao diện thân thiện hơn và tốc độ xử lý nhanh hơn. Người dùng có thể trải nghiệm ngay từ hôm nay.',
-            image: 'https://readdy.ai/api/search-image?query=Futuristic%20digital%20technology%20upgrade%20announcement%20with%20glowing%20circuit%20board%20patterns%20and%20holographic%20interface%20elements%2C%20modern%20software%20system%20enhancement%20visualization%20on%20deep%20blue%20black%20gradient%20background&width=800&height=400&seq=landingimg3&orientation=landscape',
+            image: 'https://storage.readdy-site.link/project_files/b76e2517-3017-41c1-b5e9-94231aad9ced/98d81a87-e0b0-4bc6-a959-fc408bf47382_photo_6338959790452707206_y.jpg?v=efa5b38e66cc1f1666bff24635e77279',
           },
           {
             title: 'Cập nhật bảo mật',
@@ -112,7 +119,7 @@ export const defaultSiteConfig: SiteConfig = {
           {
             title: 'Ưu đãi thành viên mới',
             content: 'Đăng ký tài khoản mới ngay hôm nay để nhận ngay nhiều phần quà hấp dẫn. Chương trình chỉ áp dụng trong thời gian có hạn.',
-            image: 'https://readdy.ai/api/search-image?query=Exclusive%20VIP%20membership%20welcome%20bonus%20promotional%20banner%20with%20golden%20trophy%20and%20sparkling%20confetti%2C%20luxury%20rewards%20and%20gifts%20display%20on%20elegant%20dark%20red%20gradient%20background%2C%20premium%20casino%20promotion%20design&width=800&height=400&seq=landingimg2&orientation=landscape',
+            image: 'https://storage.readdy-site.link/project_files/b76e2517-3017-41c1-b5e9-94231aad9ced/d78d68f3-3271-4352-8ead-b9f76c23b8c9_2f63231d-2137-4f79-8797-ddbedd70c6d0.png?v=0b1dc0ed6525be51345000060f67f6a6',
           },
           {
             title: 'Hoàn trả hàng ngày',

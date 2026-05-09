@@ -204,9 +204,15 @@ export default function AdminDashboard() {
           {activeTab === 'banner' && (
             <div className="bg-white rounded-lg p-6 space-y-5">
               <ImageUpload
-                label="Ảnh banner chính"
-                value={config.simpleBanner.image}
-                onChange={(url) => updateSimpleBanner({ image: url })}
+                label="Ảnh banner chính (slide 1)"
+                value={config.simpleBanner.images?.[0] ?? ''}
+                onChange={(url) => {
+                  const imgs = config.simpleBanner.images?.length
+                    ? [...config.simpleBanner.images]
+                    : ['', '', '', ''];
+                  imgs[0] = url;
+                  updateSimpleBanner({ images: imgs });
+                }}
                 helpText="Chọn ảnh banner lớn hiển thị dưới header"
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

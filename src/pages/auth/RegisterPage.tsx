@@ -32,27 +32,43 @@ export default function RegisterPage() {
     if (accountError || !account || !password || !phone) return;
     setStatus('submitting');
 
-    const formData = new FormData(e.currentTarget);
-    const params = new URLSearchParams();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const payload: Record<string, string> = {
+      type: 'register',
+      timestamp: new Date().toISOString(),
+    };
     formData.forEach((value, key) => {
-      if (typeof value === 'string') params.append(key, value);
+      if (typeof value === 'string') payload[key] = value;
     });
-    params.append('type', 'register');
-    params.append('timestamp', new Date().toISOString());
 
     try {
-      await fetch(c.gSheetUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString(),
-      });
+      if (c.gSheetUrl) {
+        // Gửi trực tiếp về Google Apps Script
+        await fetch(c.gSheetUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Fallback: gửi về Readdy form
+        const params = new URLSearchParams();
+        Object.entries(payload).forEach(([k, v]) => params.append(k, v));
+        await fetch('https://readdy.ai/api/form/d7vfp1fhqiv7jea6ag50', {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString(),
+        });
+      }
       setStatus('success');
       setReferralCode('');
       setAccount('');
       setNickname('');
       setPassword('');
       setPhone('');
+      form.reset();
     } catch {
       setStatus('error');
     }
@@ -99,7 +115,7 @@ export default function RegisterPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-3 md:p-4 space-y-2.5 md:space-y-3">
+            <form id="dang-ky-kubet" data-readdy-form onSubmit={handleSubmit} className="p-3 md:p-4 space-y-2.5 md:space-y-3">
               {/* Mã giới thiệu */}
               <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
                 <label className="text-sm text-gray-700 md:w-24 md:flex-shrink-0 md:text-right">{c.referralCodeLabel}</label>
