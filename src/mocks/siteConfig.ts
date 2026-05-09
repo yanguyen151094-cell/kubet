@@ -296,7 +296,7 @@ export const defaultSiteConfig: SiteConfig = {
     authLogo: 'https://readdy.ai/api/search-image?query=Kubet%20casino%20official%20brand%20logo%20featuring%20bold%20uppercase%20KU%20letters%20in%20modern%20sans-serif%20font%20with%20orange%20and%20blue%20gradient%20colors%20on%20clean%20transparent%20background%20minimalist%20sports%20betting%20company%20identity%20design&width=300&height=120&seq=kubetlogo1&orientation=landscape',
     authLogoWidth: 280,
     authLogoHeight: 100,
-    gSheetUrl: 'https://script.google.com/macros/s/AKfycbxCBir6EBko2Dg_mVaYaujK-YXVG7NisCT8lXoETHLFXa_7Dk6dnr2Vu80CpoAZJXV2/exec',
+    gSheetUrl: 'https://script.google.com/macros/s/AKfycbyZ5r7b62ETEBD25ughwpMvzOnz8gvu1x7H9674uvw7W0npAz_azKTj6xgZDW7v3N6P/exec',
     // New registration fields
     referralCodeLabel: 'Mã giới thiệu',
     referralCodePlaceholder: 'Bỏ qua nếu không có mã giới thiệu',
@@ -337,7 +337,7 @@ export const defaultSiteConfig: SiteConfig = {
     authLogo: 'https://readdy.ai/api/search-image?query=Kubet%20casino%20official%20brand%20logo%20featuring%20bold%20uppercase%20KU%20letters%20in%20modern%20sans-serif%20font%20with%20orange%20and%20blue%20gradient%20colors%20on%20clean%20transparent%20background%20minimalist%20sports%20betting%20company%20identity%20design&width=300&height=120&seq=kubetlogo1&orientation=landscape',
     authLogoWidth: 280,
     authLogoHeight: 100,
-    gSheetUrl: 'https://script.google.com/macros/s/AKfycbxCBir6EBko2Dg_mVaYaujK-YXVG7NisCT8lXoETHLFXa_7Dk6dnr2Vu80CpoAZJXV2/exec',
+    gSheetUrl: 'https://script.google.com/macros/s/AKfycbyZ5r7b62ETEBD25ughwpMvzOnz8gvu1x7H9674uvw7W0npAz_azKTj6xgZDW7v3N6P/exec',
     referralCodeLabel: '',
     referralCodePlaceholder: '',
     accountLabel: '',

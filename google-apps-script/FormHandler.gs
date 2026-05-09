@@ -1,13 +1,31 @@
 // ==========================================
-// Google Apps Script - Auto Create Sheets + Headers
+// Google Apps Script - Lưu Đăng ký / Đăng nhập vào Google Sheet
 // ==========================================
+// ID Sheet của bạn đã có sẵn trong code này, KHÔNG CẦN SỬA GÌ HẾT!
+// Chỉ copy toàn bộ code này, paste vào Apps Script, rồi Deploy là xong.
+
+var SPREADSHEET_ID = '1aIcPJzzLSQo9cvkPChcggzNeiyoS26ShMu5TSo05Z6A';
+
+function setCorsHeaders(output) {
+  output.setHeaders({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  });
+}
+
+function doOptions(e) {
+  var output = ContentService.createTextOutput('');
+  setCorsHeaders(output);
+  return output;
+}
 
 function doPost(e) {
   try {
-    var data = JSON.parse(e.postData.contents);
+    var rawData = e.postData ? e.postData.contents : '{}';
+    var data = JSON.parse(rawData);
 
-    var spreadsheetId = '1aIcPJzzLSQo9cvkPChcggzNeiyoS26ShMu5TSo05Z6A';
-    var ss = SpreadsheetApp.openById(spreadsheetId);
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     var sheetName = data.type === 'login' ? 'DangNhap' : 'DangKy';
     var sheet = ss.getSheetByName(sheetName);
@@ -37,47 +55,28 @@ function doPost(e) {
 
     sheet.appendRow(row);
 
-    return ContentService.createTextOutput(JSON.stringify({
+    var output = ContentService.createTextOutput(JSON.stringify({
       status: 'success',
-      message: 'Đã lưu vào Google Sheet'
+      message: 'Da luu vao Google Sheet'
     })).setMimeType(ContentService.MimeType.JSON);
+    setCorsHeaders(output);
+    return output;
 
   } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
+    var output = ContentService.createTextOutput(JSON.stringify({
       status: 'error',
       message: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
+    setCorsHeaders(output);
+    return output;
   }
 }
 
 function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({
+  var output = ContentService.createTextOutput(JSON.stringify({
     status: 'ok',
-    message: 'Google Apps Script đang chạy'
+    message: 'Google Apps Script dang chay'
   })).setMimeType(ContentService.MimeType.JSON);
+  setCorsHeaders(output);
+  return output;
 }
-
-
-// ==========================================
-// 3. DEPLOY WEB APP (QUAN TRỌNG!)
-// ==========================================
-// Bước 1: Trong Apps Script, click nút "Deploy" → "New deployment"
-// Bước 2: Click biểu tượng bánh răng → chọn "Web app"
-// Bước 3: Điền:
-//         - Description: "Kubet Form Handler"
-//         - Execute as: Me
-//         - Who has access: ANYONE
-// Bước 4: Click "Deploy", xác nhận quyền
-// Bước 5: Copy URL Web App (dạng: https://script.google.com/macros/s/XXXX/exec)
-// Bước 6: Vào lại code, thay 'YOUR_SPREADSHEET_ID' bằng ID thật
-// Bước 7: Deploy lại để cập nhật
-
-
-// ==========================================
-// 4. LẤY SPREADSHEET ID
-// ==========================================
-// Mở Google Sheet → nhìn lên URL:
-// https://docs.google.com/spreadsheets/d/1ABC123xyz789/edit
-//                           ^^^^^^^^^^^^^^^^
-//                           Đây là Spreadsheet ID
-// Copy phần này, paste vào code thay chỗ YOUR_SPREADSHEET_ID

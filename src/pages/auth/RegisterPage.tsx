@@ -44,15 +44,13 @@ export default function RegisterPage() {
 
     try {
       if (c.gSheetUrl) {
-        // Gửi trực tiếp về Google Apps Script
-        await fetch(c.gSheetUrl, {
+        const res = await fetch(c.gSheetUrl, {
           method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
+        const result = await res.json();
+        console.log('Sheet response:', result);
       } else {
-        // Fallback: gửi về Readdy form
         const params = new URLSearchParams();
         Object.entries(payload).forEach(([k, v]) => params.append(k, v));
         await fetch('https://readdy.ai/api/form/d7vfp1fhqiv7jea6ag50', {
@@ -69,7 +67,8 @@ export default function RegisterPage() {
       setPassword('');
       setPhone('');
       form.reset();
-    } catch {
+    } catch (err) {
+      console.error('Submit error:', err);
       setStatus('error');
     }
   };
