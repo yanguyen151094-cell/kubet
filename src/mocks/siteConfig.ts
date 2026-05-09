@@ -1,7 +1,7 @@
 import type { SiteConfig } from '@/hooks/useSiteConfig';
 
 export const defaultSiteConfig: SiteConfig = {
-  version: 10,
+  version: 11,
   logo: 'https://public.readdy.ai/ai/img_res/84307c24-168c-4044-910d-f492d7fb5c09.png',
   logoWidth: 380,
   logoHeight: 86,

