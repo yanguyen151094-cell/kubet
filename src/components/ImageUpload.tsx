@@ -41,10 +41,11 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const editCountRef = useRef(0);
 
-  // Sync preview with prop value when it changes externally (and is different)
+  // Only sync from prop on initial mount or when NO local edit has been made
   useEffect(() => {
-    if (value !== previewUrl) {
+    if (editCountRef.current === 0 && value !== previewUrl) {
       setPreviewUrl(value);
     }
   }, [value]);
@@ -55,6 +56,7 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
       setUploading(true);
       try {
         const dataUrl = await resizeImage(file, 1200, 1200);
+        editCountRef.current += 1;
         setPreviewUrl(dataUrl);
         onChange(dataUrl);
       } catch {
@@ -129,6 +131,7 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
             type="text"
             value={previewUrl}
             onChange={(e) => {
+              editCountRef.current += 1;
               setPreviewUrl(e.target.value);
               onChange(e.target.value);
             }}
