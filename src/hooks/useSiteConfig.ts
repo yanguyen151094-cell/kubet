@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY, isSupabaseReady } from '@/lib/supabase';
 import { defaultSiteConfig } from '@/mocks/siteConfig';
 
 export interface HowItWorkItem {
@@ -219,6 +219,30 @@ export interface SiteConfig {
   };
 }
 
+const LS_KEY = 'site_config_backup';
+
+function saveToLocalStorage(cfg: SiteConfig) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(cfg));
+    console.log('[saveToLocalStorage] Saved to localStorage');
+  } catch {
+    console.error('[saveToLocalStorage] Failed to save');
+  }
+}
+
+function loadFromLocalStorage(): SiteConfig | null {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      console.log('[loadFromLocalStorage] Loaded from localStorage');
+      return JSON.parse(raw) as SiteConfig;
+    }
+  } catch {
+    console.error('[loadFromLocalStorage] Failed to load');
+  }
+  return null;
+}
+
 export function useSiteConfig() {
   const [config, setConfig] = useState<SiteConfig>(() => ({ ...defaultSiteConfig }));
 
@@ -230,6 +254,12 @@ export function useSiteConfig() {
 
   // Luôn fetch từ DB khi mount - DB là nguồn sự thật, nhưng merge với default để tránh thiếu trường mới
   useEffect(() => {
+    if (!isSupabaseReady) {
+      console.warn('[useSiteConfig] Supabase NOT ready, using localStorage fallback');
+      const ls = loadFromLocalStorage();
+      if (ls) setConfig(ls);
+      return;
+    }
     supabase
       .from('site_config')
       .select('config_data')
@@ -238,6 +268,8 @@ export function useSiteConfig() {
       .then(({ data, error }) => {
         if (error) {
           console.error('[useSiteConfig] Fetch error:', error);
+          const ls = loadFromLocalStorage();
+          if (ls) setConfig(ls);
           return;
         }
         if (data?.config_data) {
@@ -255,6 +287,8 @@ export function useSiteConfig() {
       })
       .catch((err) => {
         console.error('[useSiteConfig] Fetch exception:', err);
+        const ls = loadFromLocalStorage();
+        if (ls) setConfig(ls);
       });
   }, []);
 
@@ -427,45 +461,50 @@ export function useSiteConfig() {
     setConfig({ ...defaultSiteConfig });
   }, []);
 
-  // ===== SỬA LỖI CHÍNH: Dùng configRef để luôn lấy state mới nhất =====
+  // ===== SAVE: DB trước, fallback localStorage =====
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const cfg = data ?? configRef.current;
+    console.log('[saveToDatabase] ========== START ==========');
+    console.log('[saveToDatabase] Supabase ready?', isSupabaseReady);
+    console.log('[saveToDatabase] URL exists?', !!SUPABASE_URL);
+    console.log('[saveToDatabase] KEY exists?', !!SUPABASE_ANON_KEY);
+
+    // Luôn lưu localStorage trước để không mất data
+    saveToLocalStorage(cfg);
+
+    if (!isSupabaseReady) {
+      console.warn('[saveToDatabase] Supabase NOT ready, saved to localStorage only');
+      return { success: true, error: null, warning: 'Đã lưu local. Thiếu cấu hình Supabase trên server.' };
+    }
+
     try {
-      console.log('[saveToDatabase] ========== START ==========');
       console.log('[saveToDatabase] Saving directly to Supabase...');
       console.log('[saveToDatabase] Config logo length:', cfg.logo?.length ?? 0);
       console.log('[saveToDatabase] Config keys:', Object.keys(cfg));
-      console.log('[saveToDatabase] Supabase URL exists?', !!SUPABASE_URL);
-      console.log('[saveToDatabase] Supabase KEY exists?', !!SUPABASE_ANON_KEY);
-      
-      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-        console.error('[saveToDatabase] MISSING env vars!');
-        return { success: false, error: 'Thiếu cấu hình Supabase' };
-      }
-      
+
       const payload = {
         id: 1,
         config_data: cfg,
         updated_at: new Date().toISOString(),
       };
-      
+
       const payloadString = JSON.stringify(payload);
       console.log('[saveToDatabase] Payload size:', payloadString.length, 'chars');
-      
+
       if (payloadString.length > 800000) {
         console.error('[saveToDatabase] Payload too large!');
         return { success: false, error: 'Dữ liệu quá lớn, vui lòng giảm kích thước ảnh' };
       }
-      
+
       console.log('[saveToDatabase] Calling supabase.upsert...');
       const { data: resultData, error } = await supabase
         .from('site_config')
         .upsert(payload, { onConflict: 'id' })
         .select();
-        
+
       console.log('[saveToDatabase] upsert returned. error:', error);
       console.log('[saveToDatabase] upsert returned. data:', resultData);
-      
+
       if (error) {
         console.error('[saveToDatabase] Supabase error:', JSON.stringify(error));
         return { success: false, error: error.message };
