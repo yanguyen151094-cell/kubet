@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { defaultSiteConfig } from '@/mocks/siteConfig';
 
@@ -222,6 +222,12 @@ export interface SiteConfig {
 export function useSiteConfig() {
   const [config, setConfig] = useState<SiteConfig>(() => ({ ...defaultSiteConfig }));
 
+  // Luôn giữ ref đến config mới nhất để saveToDatabase không bị closure cũ
+  const configRef = useRef(config);
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+
   // Luôn fetch từ DB khi mount - DB là nguồn sự thật, nhưng merge với default để tránh thiếu trường mới
   useEffect(() => {
     supabase
@@ -239,7 +245,6 @@ export function useSiteConfig() {
           setConfig((prev) => ({
             ...prev,
             ...dbConfig,
-            // Giữ default cho các trường mới nếu DB cũ chưa có
             simpleNav: dbConfig.simpleNav ?? prev.simpleNav,
             simpleBanner: dbConfig.simpleBanner ?? prev.simpleBanner,
             simpleContent: dbConfig.simpleContent ?? prev.simpleContent,
@@ -422,16 +427,26 @@ export function useSiteConfig() {
     setConfig({ ...defaultSiteConfig });
   }, []);
 
+  // ===== SỬA LỖI CHÍNH: Dùng configRef để luôn lấy state mới nhất =====
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
-    const cfg = data ?? config;
+    const cfg = data ?? configRef.current;
     try {
       console.log('[saveToDatabase] Saving directly to Supabase...');
+      console.log('[saveToDatabase] Config logo length:', cfg.logo?.length ?? 0);
+      console.log('[saveToDatabase] Config keys:', Object.keys(cfg));
+      
+      const payload = {
+        id: 1,
+        config_data: cfg,
+        updated_at: new Date().toISOString(),
+      };
+      
+      console.log('[saveToDatabase] Payload size estimate:', JSON.stringify(payload).length, 'chars');
+      
       const { error } = await supabase
         .from('site_config')
-        .upsert(
-          { id: 1, config_data: cfg, updated_at: new Date().toISOString() },
-          { onConflict: 'id' }
-        );
+        .upsert(payload, { onConflict: 'id' });
+        
       if (error) {
         console.error('[saveToDatabase] Supabase error:', error);
         return { success: false, error: error.message };
@@ -442,7 +457,7 @@ export function useSiteConfig() {
       console.error('[saveToDatabase] Exception:', err);
       return { success: false, error: (err as Error).message };
     }
-  }, [config]);
+  }, []); // Không cần dependency config nữa vì dùng ref
 
   return {
     config,
