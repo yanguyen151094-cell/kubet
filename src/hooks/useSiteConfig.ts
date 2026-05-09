@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { defaultSiteConfig } from '@/mocks/siteConfig';
 
@@ -210,12 +210,22 @@ function mergeWithDefault(stored: Record<string, unknown>): SiteConfig {
   return merged as SiteConfig;
 }
 
+// Helper: timeout wrapper for promises
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 export function useSiteConfig() {
   const [config, setConfigState] = useState<SiteConfig>(() => mergeWithDefault({}));
   const [loading, setLoading] = useState(true);
   const [dbReady, setDbReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dbEnabled, setDbEnabled] = useState(true);
+  const dbEnabledRef = useRef(true);
 
   // Load from Supabase on mount
   useEffect(() => {
@@ -225,18 +235,21 @@ export function useSiteConfig() {
 
     (async () => {
       try {
-        // 1. Try Supabase
-        const { data, error: dbError } = await supabase
-          .from('site_config')
-          .select('config_data')
-          .eq('id', 1)
-          .maybeSingle();
+        // Try Supabase with timeout
+        const { data, error: dbError } = await withTimeout(
+          supabase
+            .from('site_config')
+            .select('config_data')
+            .eq('id', 1)
+            .maybeSingle(),
+          5000
+        );
 
         if (!cancelled) {
           if (dbError) {
             console.error('Supabase load error:', dbError);
             setError(dbError.message);
-            setDbEnabled(false);
+            dbEnabledRef.current = false;
             // Fallback to localStorage
             try {
               const cached = localStorage.getItem(STORAGE_KEY);
@@ -250,7 +263,7 @@ export function useSiteConfig() {
           } else if (data && data.config_data && Object.keys(data.config_data).length > 0) {
             const merged = mergeWithDefault(data.config_data as Record<string, unknown>);
             setConfigState(merged);
-            setDbEnabled(true);
+            dbEnabledRef.current = true;
             // Also sync to localStorage as fallback cache
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
@@ -258,20 +271,19 @@ export function useSiteConfig() {
               // ignore storage errors
             }
           } else {
-            // No DB config yet - use default and also save default to DB
+            // No DB config yet - use default and seed
             setConfigState(defaultSiteConfig);
-            // Seed default config into DB
+            // Seed default config into DB with key
             try {
-              const { error: seedErr } = await supabase
-                .from('site_config')
-                .upsert({ id: 1, config_data: defaultSiteConfig, updated_at: new Date().toISOString() });
-              if (seedErr) {
-                console.error('Seed default config error:', seedErr);
-                setDbEnabled(false);
-              }
+              await withTimeout(
+                supabase
+                  .from('site_config')
+                  .upsert({ id: 1, key: 'default', config_data: defaultSiteConfig, updated_at: new Date().toISOString() }),
+                5000
+              );
             } catch (seedErr) {
               console.error('Seed default config error:', seedErr);
-              setDbEnabled(false);
+              dbEnabledRef.current = false;
             }
           }
           setDbReady(true);
@@ -281,7 +293,7 @@ export function useSiteConfig() {
         if (!cancelled) {
           console.error('Config load error:', err);
           setError('Không thể tải cấu hình từ server');
-          setDbEnabled(false);
+          dbEnabledRef.current = false;
           // Fallback to localStorage
           try {
             const cached = localStorage.getItem(STORAGE_KEY);
@@ -299,38 +311,41 @@ export function useSiteConfig() {
     })();
 
     // Subscribe to realtime updates
-    const channel = supabase
-      .channel('site_config_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'site_config', filter: 'id=eq.1' },
-        (payload) => {
-          if (!cancelled && payload.new && (payload.new as Record<string, unknown>).config_data) {
-            const newData = (payload.new as Record<string, unknown>).config_data as Record<string, unknown>;
-            const merged = mergeWithDefault(newData);
-            setConfigState(merged);
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-            } catch {
-              // ignore
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel('site_config_changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'site_config', filter: 'id=eq.1' },
+          (payload) => {
+            if (!cancelled && payload.new && (payload.new as Record<string, unknown>).config_data) {
+              const newData = (payload.new as Record<string, unknown>).config_data as Record<string, unknown>;
+              const merged = mergeWithDefault(newData);
+              setConfigState(merged);
+              try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              } catch {
+                // ignore
+              }
             }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    } catch {
+      // ignore realtime subscription errors
+    }
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
-  // Save to Supabase whenever config changes (debounced)
+  // Save to localStorage whenever config changes (debounced)
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!loading && dbReady) {
-        // Only sync to localStorage as cache, NO auto-save to Supabase
-        // Admin will use explicit Save button
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
         } catch {
@@ -469,64 +484,54 @@ export function useSiteConfig() {
   const resetConfig = useCallback(() => {
     setConfigState(defaultSiteConfig);
     localStorage.removeItem(STORAGE_KEY);
-    // Also reset in Supabase
     supabase
       .from('site_config')
-      .upsert({ id: 1, config_data: defaultSiteConfig, updated_at: new Date().toISOString() })
-      .then(({ error: resetErr }) => {
-        if (resetErr) console.error('Supabase reset error:', resetErr);
-      });
+      .upsert({ id: 1, key: 'default', config_data: defaultSiteConfig, updated_at: new Date().toISOString() })
+      .catch((err: Error) => console.error('Supabase reset error:', err));
   }, []);
 
+  // Save directly to Supabase with timeout - NO Edge Function
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const configToSave = data ?? config;
     try {
-      // Always save to localStorage first (guaranteed success)
+      // Always save to localStorage first
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
       } catch {
         // ignore
       }
 
-      // If DB is known to be disabled, skip network call
-      if (!dbEnabled) {
-        console.warn('Supabase disabled, saved to localStorage only');
+      // If DB is known to be disabled, skip network
+      if (!dbEnabledRef.current) {
         return { success: true, error: null, localOnly: true };
       }
 
-      // Primary: use Edge Function (service_role, bypasses RLS)
-      const { data: fnData, error: fnError } = await supabase.functions.invoke(
-        'update-site-config',
-        { body: { config_data: configToSave } }
+      // Direct Supabase update with 8s timeout - include key to satisfy NOT NULL
+      const { error: saveErr } = await withTimeout(
+        supabase
+          .from('site_config')
+          .upsert({
+            id: 1,
+            key: 'default',
+            config_data: configToSave,
+            updated_at: new Date().toISOString(),
+          }),
+        8000
       );
 
-      if (fnError) {
-        console.error('Edge function save error:', fnError);
-        // Fallback: direct client update
-        const { error: saveErr } = await supabase
-          .from('site_config')
-          .update({ config_data: configToSave, updated_at: new Date().toISOString() })
-          .eq('id', 1);
-        if (saveErr) {
-          console.error('Supabase direct save fallback error:', saveErr);
-          // Mark DB as disabled for future calls
-          setDbEnabled(false);
-          return { success: true, error: null, localOnly: true };
-        }
-      } else if (fnData && !fnData.success) {
-        console.error('Edge function returned error:', fnData);
-        setDbEnabled(false);
+      if (saveErr) {
+        console.error('Supabase save error:', saveErr);
+        dbEnabledRef.current = false;
         return { success: true, error: null, localOnly: true };
       }
 
       return { success: true, error: null, localOnly: false };
     } catch (err) {
       console.error('Save error:', err);
-      setDbEnabled(false);
-      // Still saved to localStorage above
+      dbEnabledRef.current = false;
       return { success: true, error: null, localOnly: true };
     }
-  }, [config, dbEnabled]);
+  }, [config]);
 
   return {
     config,
