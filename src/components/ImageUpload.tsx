@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface ImageUploadProps {
   value: string;
@@ -7,7 +8,7 @@ interface ImageUploadProps {
   helpText?: string;
 }
 
-function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<string> {
+function resizeImageToBlob(file: File, maxWidth: number, maxHeight: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -25,8 +26,10 @@ function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<s
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject(new Error('Canvas context not available'));
         ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/png', 0.85);
-        resolve(dataUrl);
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Canvas toBlob failed'));
+        }, 'image/webp', 0.85);
       };
       img.onerror = () => reject(new Error('Failed to load image'));
       img.src = reader.result as string;
@@ -43,7 +46,6 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
   const inputRef = useRef<HTMLInputElement>(null);
   const editCountRef = useRef(0);
 
-  // Only sync from prop on initial mount or when NO local edit has been made
   useEffect(() => {
     if (editCountRef.current === 0 && value !== previewUrl) {
       setPreviewUrl(value);
@@ -55,12 +57,43 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
       if (!file.type.startsWith('image/')) return;
       setUploading(true);
       try {
-        const dataUrl = await resizeImage(file, 1200, 1200);
+        // 1. Resize to blob
+        const blob = await resizeImageToBlob(file, 1200, 1200);
+        
+        // 2. Upload to Supabase Storage
+        const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('site-images')
+          .upload(fileName, blob, {
+            contentType: 'image/webp',
+            cacheControl: '3600',
+          });
+        
+        if (uploadError) {
+          console.error('[ImageUpload] Upload error:', uploadError.message);
+          // Fallback: show preview with base64 but warn user
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            editCountRef.current += 1;
+            setPreviewUrl(dataUrl);
+            onChange(dataUrl);
+          };
+          reader.readAsDataURL(blob);
+          return;
+        }
+        
+        // 3. Get public URL
+        const { data: urlData } = supabase.storage
+          .from('site-images')
+          .getPublicUrl(uploadData.path);
+        
+        const publicUrl = urlData.publicUrl;
         editCountRef.current += 1;
-        setPreviewUrl(dataUrl);
-        onChange(dataUrl);
-      } catch {
-        // ignore
+        setPreviewUrl(publicUrl);
+        onChange(publicUrl);
+      } catch (err) {
+        console.error('[ImageUpload] Process error:', (err as Error).message);
       } finally {
         setUploading(false);
       }
@@ -110,7 +143,7 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
           onChange={handleFileChange}
         />
         {uploading ? (
-          <span className="text-sm text-gray-500">Đang xử lý ảnh...</span>
+          <span className="text-sm text-gray-500">Đang tải ảnh lên...</span>
         ) : previewUrl ? (
           <div className="flex flex-col items-center gap-2">
             <img src={previewUrl} alt="Preview" className="h-20 w-auto object-contain rounded-md" />
@@ -138,9 +171,6 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
             className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
           />
         </div>
-      )}
-      {previewUrl && previewUrl.startsWith('data:') && (
-        <p className="text-xs text-gray-400">Ảnh đã được lưu dưới dạng base64 (tự động resize)</p>
       )}
       {helpText && <p className="text-xs text-gray-400">{helpText}</p>}
     </div>

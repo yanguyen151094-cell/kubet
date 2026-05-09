@@ -32,6 +32,11 @@ export const defaultSiteConfig: SiteConfig = {
     paddingTop: 80, paddingBottom: 80, gap: 24, maxWidth: 1024,
     titleSize: 30, subtitleSize: 14, labelSize: 14,
   },
+  pricingStyle: {
+    paddingTop: 80, paddingBottom: 80, gap: 24, maxWidth: 1024,
+    titleSize: 30, subtitleSize: 14, labelSize: 14,
+    bgColor: '#f9fafb',
+  },
   faqStyle: {
     paddingTop: 80, paddingBottom: 80, gap: 24, maxWidth: 1024,
     titleSize: 30, subtitleSize: 14, labelSize: 14,

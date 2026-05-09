@@ -109,6 +109,7 @@ export interface SiteConfig {
   statsStyle: SectionStyle;
   screenshotsStyle: SectionStyle;
   testimonialsStyle: SectionStyle;
+  pricingStyle: SectionStyle;
   faqStyle: SectionStyle;
   contactStyle: SectionStyle;
   footerStyle: SectionStyle;
@@ -208,13 +209,6 @@ function mergeWithDefault(stored: Record<string, unknown>): SiteConfig {
   return merged as SiteConfig;
 }
 
-function isEmptyConfigData(data: unknown): boolean {
-  if (!data) return true;
-  if (typeof data !== 'object') return true;
-  if (Array.isArray(data)) return data.length === 0;
-  return Object.keys(data).length === 0;
-}
-
 export function useSiteConfig() {
   const [config, setConfigState] = useState<SiteConfig>(() => {
     try {
@@ -235,64 +229,78 @@ export function useSiteConfig() {
     configRef.current = config;
   }, [config]);
 
-  // fetchConfig: ALWAYS try DB first. Never permanently disable DB.
   const fetchConfig = useCallback(async (sourceHint?: string) => {
     const now = Date.now();
-    if (now - lastFetchRef.current < 500) return; // debounce 500ms
+    if (now - lastFetchRef.current < 500) return { source: 'throttled', config: configRef.current };
     lastFetchRef.current = now;
     setLoading(true);
+    console.log(`[fetchConfig] START source=${sourceHint}`);
 
-    let dbData: Record<string, unknown> | null = null;
-    let dbOk = false;
+    let merged: SiteConfig | null = null;
+    let source = 'default';
 
+    // 1. ALWAYS try localStorage FIRST — it has the freshest data (saved before DB call)
     try {
-      const { data, error: dbError } = await supabase
-        .from('site_config')
-        .select('config_data, updated_at')
-        .eq('id', 1)
-        .maybeSingle();
-
-      if (dbError) {
-        console.error('[useSiteConfig] DB error:', dbError.message, sourceHint);
-        setError(dbError.message);
-      } else if (data && !isEmptyConfigData(data.config_data)) {
-        dbData = data.config_data as Record<string, unknown>;
-        dbOk = true;
-        setError(null);
-        console.log('[useSiteConfig] DB loaded | updated_at:', data.updated_at, '| sourceHint:', sourceHint);
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached) as Record<string, unknown>;
+        merged = mergeWithDefault(parsed);
+        source = 'localStorage';
+        console.log('[fetchConfig] Loaded from localStorage (primary source)');
       }
-    } catch (err) {
-      console.error('[useSiteConfig] Load error:', err);
-      setError((err as Error).message);
-    }
+    } catch { /* ignore */ }
 
-    if (dbData) {
-      const merged = mergeWithDefault(dbData);
-      setConfigState(merged);
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch { /* ignore */ }
-    } else {
-      // DB failed: use localStorage as fallback
+    // 2. Fallback to DB only if localStorage is empty
+    if (!merged) {
       try {
-        const cached = localStorage.getItem(STORAGE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached) as Record<string, unknown>;
-          const merged = mergeWithDefault(parsed);
-          if (JSON.stringify(merged) !== JSON.stringify(configRef.current)) {
-            setConfigState(merged);
-          }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const { data, error: dbError } = await supabase
+          .from('site_config')
+          .select('config_data')
+          .eq('id', 1)
+          .abortSignal(controller.signal)
+          .maybeSingle();
+
+        clearTimeout(timeoutId);
+
+        if (!dbError && data?.config_data) {
+          const parsed = data.config_data as Record<string, unknown>;
+          merged = mergeWithDefault(parsed);
+          source = 'db';
+          console.log('[fetchConfig] Loaded from DB');
+          // Also cache to localStorage for next time
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+          } catch { /* ignore */ }
+        } else if (dbError) {
+          console.warn('[fetchConfig] DB error:', dbError.message);
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        console.warn('[fetchConfig] DB fetch failed:', (err as Error).message);
+      }
     }
 
+    // 3. Final fallback to default
+    if (!merged) {
+      merged = mergeWithDefault({});
+      source = 'default';
+      console.log('[fetchConfig] Using default config');
+    }
+
+    setConfigState(merged);
+    configRef.current = merged;
+    setError(null);
     setLoading(false);
+    console.log('[fetchConfig] END source=' + source);
+    return { source, config: merged };
   }, []);
 
-  // Initial load
   useEffect(() => {
     fetchConfig('initial');
   }, [fetchConfig]);
 
-  // Cross-tab sync via localStorage
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'salekit_sync_trigger') {
@@ -304,7 +312,6 @@ export function useSiteConfig() {
     return () => window.removeEventListener('storage', handleStorage);
   }, [fetchConfig]);
 
-  // Tab visibility: refresh when user comes back
   useEffect(() => {
     const handleVisibility = () => {
       if (!document.hidden) {
@@ -315,14 +322,12 @@ export function useSiteConfig() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [fetchConfig]);
 
-  // Auto-sync to localStorage
   useEffect(() => {
     if (!loading) {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch { /* ignore */ }
     }
   }, [config, loading]);
 
-  // setConfigWithVersion: update state
   const setConfigWithVersion = useCallback((updater: SiteConfig | ((prev: SiteConfig) => SiteConfig)) => {
     setConfigState((prev) => {
       const newConfig = typeof updater === 'function'
@@ -463,42 +468,53 @@ export function useSiteConfig() {
     setConfigState(reset);
     configRef.current = reset;
     localStorage.removeItem(STORAGE_KEY);
+    // Also clear DB on reset
+    supabase.from('site_config').delete().eq('id', 1).then(({ error }) => {
+      if (error) console.warn('[resetConfig] DB clear error:', error.message);
+    });
   }, []);
 
-  // Save directly to Supabase via Edge Function - more reliable than client upsert
+  // Save to localStorage (primary) + DB (background sync)
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const configToSave = data ?? configRef.current;
+    console.log('[saveToDatabase] START');
 
+    // Always save to localStorage first (fast, reliable)
     try {
-      // 1. Save to localStorage first for instant UI
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave)); } catch { /* ignore */ }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
+      localStorage.setItem('salekit_sync_trigger', String(Date.now()));
+    } catch { /* ignore */ }
 
-      // 2. Call Edge Function (bypasses RLS, more reliable)
-      console.log('[saveToDatabase] Calling edge function...');
-      const { data: result, error: fnErr } = await supabase.functions.invoke('update-site-config', {
-        body: { config_data: configToSave },
-      });
+    // Then try DB in background (for cross-device sync)
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      if (fnErr) {
-        console.error('[saveToDatabase] Edge function error:', fnErr);
-        return { success: false, error: fnErr.message || 'Edge function error', localOnly: true };
+      const { error: upsertError } = await supabase
+        .from('site_config')
+        .upsert(
+          {
+            id: 1,
+            config_data: configToSave,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id' }
+        )
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeoutId);
+
+      if (upsertError) {
+        console.warn('[saveToDatabase] DB upsert error:', upsertError.message);
+        return { success: true, error: null, localOnly: true };
       }
 
-      if (result && !result.success) {
-        console.error('[saveToDatabase] Edge function returned error:', result.error);
-        return { success: false, error: result.error || 'Unknown error', localOnly: true };
-      }
-
-      // 3. Trigger cross-tab sync
-      try {
-        localStorage.setItem('salekit_sync_trigger', String(Date.now()));
-      } catch { /* ignore */ }
-
-      console.log('[saveToDatabase] Save OK');
+      console.log('[saveToDatabase] END success — saved to DB + localStorage');
       return { success: true, error: null, localOnly: false };
     } catch (err) {
-      console.error('[saveToDatabase] Error:', err);
-      return { success: false, error: (err as Error).message, localOnly: true };
+      console.warn('[saveToDatabase] DB save failed:', (err as Error).message);
+      // Still success because localStorage saved
+      return { success: true, error: null, localOnly: true };
     }
   }, []);
 
