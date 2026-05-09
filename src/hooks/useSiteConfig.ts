@@ -215,6 +215,7 @@ export function useSiteConfig() {
   const [loading, setLoading] = useState(true);
   const [dbReady, setDbReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dbEnabled, setDbEnabled] = useState(true);
 
   // Load from Supabase on mount
   useEffect(() => {
@@ -235,6 +236,7 @@ export function useSiteConfig() {
           if (dbError) {
             console.error('Supabase load error:', dbError);
             setError(dbError.message);
+            setDbEnabled(false);
             // Fallback to localStorage
             try {
               const cached = localStorage.getItem(STORAGE_KEY);
@@ -248,6 +250,7 @@ export function useSiteConfig() {
           } else if (data && data.config_data && Object.keys(data.config_data).length > 0) {
             const merged = mergeWithDefault(data.config_data as Record<string, unknown>);
             setConfigState(merged);
+            setDbEnabled(true);
             // Also sync to localStorage as fallback cache
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
@@ -262,9 +265,13 @@ export function useSiteConfig() {
               const { error: seedErr } = await supabase
                 .from('site_config')
                 .upsert({ id: 1, config_data: defaultSiteConfig, updated_at: new Date().toISOString() });
-              if (seedErr) console.error('Seed default config error:', seedErr);
+              if (seedErr) {
+                console.error('Seed default config error:', seedErr);
+                setDbEnabled(false);
+              }
             } catch (seedErr) {
               console.error('Seed default config error:', seedErr);
+              setDbEnabled(false);
             }
           }
           setDbReady(true);
@@ -274,6 +281,7 @@ export function useSiteConfig() {
         if (!cancelled) {
           console.error('Config load error:', err);
           setError('Không thể tải cấu hình từ server');
+          setDbEnabled(false);
           // Fallback to localStorage
           try {
             const cached = localStorage.getItem(STORAGE_KEY);
@@ -473,6 +481,19 @@ export function useSiteConfig() {
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const configToSave = data ?? config;
     try {
+      // Always save to localStorage first (guaranteed success)
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
+      } catch {
+        // ignore
+      }
+
+      // If DB is known to be disabled, skip network call
+      if (!dbEnabled) {
+        console.warn('Supabase disabled, saved to localStorage only');
+        return { success: true, error: null, localOnly: true };
+      }
+
       // Primary: use Edge Function (service_role, bypasses RLS)
       const { data: fnData, error: fnError } = await supabase.functions.invoke(
         'update-site-config',
@@ -488,25 +509,24 @@ export function useSiteConfig() {
           .eq('id', 1);
         if (saveErr) {
           console.error('Supabase direct save fallback error:', saveErr);
-          return { success: false, error: saveErr.message };
+          // Mark DB as disabled for future calls
+          setDbEnabled(false);
+          return { success: true, error: null, localOnly: true };
         }
       } else if (fnData && !fnData.success) {
         console.error('Edge function returned error:', fnData);
-        return { success: false, error: fnData.error || 'Lỗi server' };
+        setDbEnabled(false);
+        return { success: true, error: null, localOnly: true };
       }
 
-      // Also update local cache
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
-      } catch {
-        // ignore
-      }
-      return { success: true, error: null };
+      return { success: true, error: null, localOnly: false };
     } catch (err) {
       console.error('Save error:', err);
-      return { success: false, error: 'Lỗi kết nối' };
+      setDbEnabled(false);
+      // Still saved to localStorage above
+      return { success: true, error: null, localOnly: true };
     }
-  }, [config]);
+  }, [config, dbEnabled]);
 
   return {
     config,

@@ -31,7 +31,7 @@ interface SiteConfigContextType {
   updateContactStyle: (style: Partial<SiteConfig['contactStyle']>) => void;
   updateFooterStyle: (style: Partial<SiteConfig['footerStyle']>) => void;
   resetConfig: () => void;
-  saveToDatabase: (data?: SiteConfig) => Promise<{ success: boolean; error: string | null }>;
+  saveToDatabase: (data?: SiteConfig) => Promise<{ success: boolean; error: string | null; localOnly?: boolean }>;
 }
 
 const SiteConfigContext = createContext<SiteConfigContextType | null>(null);

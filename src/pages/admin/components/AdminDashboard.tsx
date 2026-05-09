@@ -70,7 +70,10 @@ export default function AdminDashboard() {
     setSaving(false);
     if (result.success) {
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      if (result.localOnly) {
+        setSaveError('Đã lưu local (DB offline)');
+      }
+      setTimeout(() => { setSaved(false); setSaveError(''); }, 2000);
     } else {
       setSaveError(result.error ?? 'Lỗi lưu');
       setTimeout(() => setSaveError(''), 3000);

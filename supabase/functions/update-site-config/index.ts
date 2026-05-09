@@ -43,9 +43,16 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    const keys = Object.keys(configData);
+    const upserts = keys.map((key) => ({
+      key,
+      value: configData[key],
+      updated_at: new Date().toISOString(),
+    }));
+
     const { error } = await supabase
       .from("site_config")
-      .upsert({ id: 1, config_data: configData, updated_at: new Date().toISOString() });
+      .upsert(upserts, { onConflict: "key" });
 
     if (error) {
       console.error("Supabase upsert error:", error);
