@@ -5,9 +5,10 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   label: string;
   helpText?: string;
+  maxSize?: number;
 }
 
-function resizeImageToDataUrl(file: File, maxWidth: number, maxHeight: number): Promise<string> {
+function resizeImageToDataUrl(file: File, maxWidth: number, maxHeight: number, quality: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -25,7 +26,7 @@ function resizeImageToDataUrl(file: File, maxWidth: number, maxHeight: number): 
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject(new Error('Canvas context not available'));
         ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/webp', 0.85);
+        const dataUrl = canvas.toDataURL('image/webp', quality);
         resolve(dataUrl);
       };
       img.onerror = () => reject(new Error('Failed to load image'));
@@ -36,7 +37,7 @@ function resizeImageToDataUrl(file: File, maxWidth: number, maxHeight: number): 
   });
 }
 
-export default function ImageUpload({ value, onChange, label, helpText }: ImageUploadProps) {
+export default function ImageUpload({ value, onChange, label, helpText, maxSize = 800 }: ImageUploadProps) {
   const [previewUrl, setPreviewUrl] = useState(value);
   const [dragOver, setDragOver] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -57,13 +58,29 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
         setTimeout(() => setErrorMsg(''), 3000);
         return;
       }
+      // Check file size before processing
+      if (file.size > 5 * 1024 * 1024) {
+        setErrorMsg('Ảnh quá lớn (>5MB), vui lòng chọn ảnh nhỏ hơn');
+        setTimeout(() => setErrorMsg(''), 4000);
+        return;
+      }
       setProcessing(true);
       setErrorMsg('');
       try {
-        const dataUrl = await resizeImageToDataUrl(file, 1200, 1200);
-        editCountRef.current += 1;
-        setPreviewUrl(dataUrl);
-        onChange(dataUrl);
+        const dataUrl = await resizeImageToDataUrl(file, maxSize, maxSize, 0.7);
+        // Check base64 size
+        const base64Size = dataUrl.length * 0.75; // approximate byte size
+        if (base64Size > 500 * 1024) {
+          // If still >500KB, resize smaller
+          const smaller = await resizeImageToDataUrl(file, 500, 500, 0.6);
+          editCountRef.current += 1;
+          setPreviewUrl(smaller);
+          onChange(smaller);
+        } else {
+          editCountRef.current += 1;
+          setPreviewUrl(dataUrl);
+          onChange(dataUrl);
+        }
       } catch (err) {
         console.error('[ImageUpload] Process error:', (err as Error).message);
         setErrorMsg('Không thể xử lý ảnh, vui lòng thử lại');
@@ -72,7 +89,7 @@ export default function ImageUpload({ value, onChange, label, helpText }: ImageU
         setProcessing(false);
       }
     },
-    [onChange]
+    [onChange, maxSize]
   );
 
   const handleFileChange = useCallback(

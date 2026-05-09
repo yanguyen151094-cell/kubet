@@ -230,7 +230,11 @@ export function useSiteConfig() {
       .eq('id', 1)
       .maybeSingle()
       .then(({ data, error }) => {
-        if (!error && data?.config_data) {
+        if (error) {
+          console.error('[useSiteConfig] Fetch error:', error);
+          return;
+        }
+        if (data?.config_data) {
           const dbConfig = data.config_data as Partial<SiteConfig>;
           setConfig((prev) => ({
             ...prev,
@@ -240,10 +244,12 @@ export function useSiteConfig() {
             simpleBanner: dbConfig.simpleBanner ?? prev.simpleBanner,
             simpleContent: dbConfig.simpleContent ?? prev.simpleContent,
           }));
+        } else {
+          console.log('[useSiteConfig] No config found in DB, using default');
         }
       })
-      .catch(() => {
-        // DB lỗi - giữ default
+      .catch((err) => {
+        console.error('[useSiteConfig] Fetch exception:', err);
       });
   }, []);
 
@@ -419,15 +425,21 @@ export function useSiteConfig() {
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const cfg = data ?? config;
     try {
-      const { error } = await supabase
-        .from('site_config')
-        .upsert({ id: 1, config_data: cfg, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-
-      if (error) {
-        return { success: false, error: error.message };
+      const { getSupabaseFunctionsUrl } = await import('@/lib/supabase');
+      const url = getSupabaseFunctionsUrl('update-site-config');
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config_data: cfg }),
+      });
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error('[saveToDatabase] Edge function error:', res.status, errBody);
+        return { success: false, error: `HTTP ${res.status}: ${errBody}` };
       }
       return { success: true, error: null };
     } catch (err) {
+      console.error('[saveToDatabase] Exception:', err);
       return { success: false, error: (err as Error).message };
     }
   }, [config]);

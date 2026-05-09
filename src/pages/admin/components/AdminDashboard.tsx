@@ -125,7 +125,11 @@ export default function AdminDashboard() {
             </h1>
             <div className="flex items-center gap-2 md:gap-3">
               {saved && <span className="text-xs md:text-sm text-emerald-600">Đã lưu!</span>}
-              {saveError && <span className="text-xs md:text-sm text-red-500">{saveError}</span>}
+              {saveError && (
+                <div className="max-w-[200px]">
+                  <span className="text-xs md:text-sm text-red-500 block truncate" title={saveError}>{saveError}</span>
+                </div>
+              )}
               <button
                 onClick={handleSave}
                 disabled={saving}
