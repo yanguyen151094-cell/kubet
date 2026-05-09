@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { useSiteConfigContext } from '@/contexts/SiteConfigContext';
-import { supabase } from '@/lib/supabase';
 import { defaultSiteConfig } from '@/mocks/siteConfig';
 import ImageUpload from '@/components/ImageUpload';
 import SectionStyleEditor from './SectionStyleEditor';
@@ -55,48 +54,39 @@ export default function AdminDashboard() {
     updateContactStyle,
     updateFooterStyle,
     resetConfig,
+    saveToDatabase,
   } = useSiteConfigContext();
 
   const [activeTab, setActiveTab] = useState('hero');
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const handleSave = useCallback(async () => {
     setSaving(true);
-    try {
-      const { error: saveErr } = await supabase
-        .from('site_config')
-        .upsert({ id: 1, config_data: config, updated_at: new Date().toISOString() });
-
-      if (saveErr) {
-        console.error('Supabase save error:', saveErr);
-        setSaved(false);
-      } else {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    } catch (err) {
-      console.error('Save error:', err);
-    } finally {
-      setSaving(false);
+    setSaveError('');
+    const result = await saveToDatabase();
+    setSaving(false);
+    if (result.success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } else {
+      setSaveError(result.error ?? 'Lỗi lưu');
+      setTimeout(() => setSaveError(''), 3000);
     }
-  }, [config]);
+  }, [saveToDatabase]);
 
   const handleReset = useCallback(async () => {
     if (!window.confirm('Bạn có chắc muốn reset về mặc định? Tất cả thay đổi sẽ bị mất.')) return;
-    
+
     resetConfig();
-    try {
-      await supabase
-        .from('site_config')
-        .upsert({ id: 1, config_data: defaultSiteConfig, updated_at: new Date().toISOString() });
+    const result = await saveToDatabase(defaultSiteConfig);
+    if (result.success) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch (err) {
-      console.error('Reset error:', err);
     }
-  }, [resetConfig]);
+  }, [resetConfig, saveToDatabase]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -163,6 +153,9 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2 md:gap-3">
               {saved && (
                 <span className="text-xs md:text-sm text-emerald-600">Đã lưu!</span>
+              )}
+              {saveError && (
+                <span className="text-xs md:text-sm text-red-500">{saveError}</span>
               )}
               <button
                 onClick={handleSave}
@@ -330,15 +323,6 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn tên đăng ký</label>
-                    <input
-                      type="text"
-                      value={config.authRegister.usernameLabel}
-                      onChange={(e) => updateAuthRegister({ usernameLabel: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nút bấm</label>
                     <input
                       type="text"
@@ -353,6 +337,15 @@ export default function AdminDashboard() {
                       type="text"
                       value={config.authRegister.successMessage}
                       onChange={(e) => updateAuthRegister({ successMessage: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Thông báo lỗi</label>
+                    <input
+                      type="text"
+                      value={config.authRegister.errorMessage}
+                      onChange={(e) => updateAuthRegister({ errorMessage: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -413,6 +406,184 @@ export default function AdminDashboard() {
                       onChange={(e) => updateAuthRegister({ accentColor: e.target.value })}
                       className="w-full h-10 rounded-md border border-gray-200 cursor-pointer"
                     />
+                  </div>
+                </div>
+
+                {/* === New Registration Form Fields === */}
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Các trường form đăng ký</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn mã giới thiệu</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.referralCodeLabel}
+                        onChange={(e) => updateAuthRegister({ referralCodeLabel: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder mã giới thiệu</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.referralCodePlaceholder}
+                        onChange={(e) => updateAuthRegister({ referralCodePlaceholder: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn tài khoản</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.accountLabel}
+                        onChange={(e) => updateAuthRegister({ accountLabel: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder tài khoản</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.accountPlaceholder}
+                        onChange={(e) => updateAuthRegister({ accountPlaceholder: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Thông báo validate tài khoản</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.accountValidationText}
+                        onChange={(e) => updateAuthRegister({ accountValidationText: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn biệt danh</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.nicknameLabel}
+                        onChange={(e) => updateAuthRegister({ nicknameLabel: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder biệt danh</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.nicknamePlaceholder}
+                        onChange={(e) => updateAuthRegister({ nicknamePlaceholder: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn mật khẩu</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.passwordLabel}
+                        onChange={(e) => updateAuthRegister({ passwordLabel: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder mật khẩu</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.passwordPlaceholder}
+                        onChange={(e) => updateAuthRegister({ passwordPlaceholder: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nút gửi mã OTP</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.otpButtonText}
+                        onChange={(e) => updateAuthRegister({ otpButtonText: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder SĐT</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.otpPlaceholder}
+                        onChange={(e) => updateAuthRegister({ otpPlaceholder: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nhãn mã xác nhận</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.confirmCodeLabel}
+                        onChange={(e) => updateAuthRegister({ confirmCodeLabel: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder mã xác nhận</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.confirmCodePlaceholder}
+                        onChange={(e) => updateAuthRegister({ confirmCodePlaceholder: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nút gửi mã xác nhận</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.confirmCodeButtonText}
+                        onChange={(e) => updateAuthRegister({ confirmCodeButtonText: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nút xác nhận chính</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.confirmButtonText}
+                        onChange={(e) => updateAuthRegister({ confirmButtonText: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung checkbox 1</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.checkbox1Label}
+                        onChange={(e) => updateAuthRegister({ checkbox1Label: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung checkbox 2</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.checkbox2Label}
+                        onChange={(e) => updateAuthRegister({ checkbox2Label: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Text link điều khoản</label>
+                      <input
+                        type="text"
+                        value={config.authRegister.termsLinkText}
+                        onChange={(e) => updateAuthRegister({ termsLinkText: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">URL điều khoản</label>
+                      <input
+                        type="url"
+                        value={config.authRegister.termsUrl}
+                        onChange={(e) => updateAuthRegister({ termsUrl: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

@@ -31,14 +31,77 @@ interface SiteConfigContextType {
   updateContactStyle: (style: Partial<SiteConfig['contactStyle']>) => void;
   updateFooterStyle: (style: Partial<SiteConfig['footerStyle']>) => void;
   resetConfig: () => void;
+  saveToDatabase: (data?: SiteConfig) => Promise<{ success: boolean; error: string | null }>;
 }
 
 const SiteConfigContext = createContext<SiteConfigContextType | null>(null);
 
 export function SiteConfigProvider({ children }: { children: React.ReactNode }) {
-  const siteConfig = useSiteConfig();
+  const {
+    config,
+    loading,
+    error,
+    setConfig,
+    updateHero,
+    updateHowItWorks,
+    updateHowItWorksItem,
+    updateFeatureItem,
+    updateStatsItem,
+    updateScreenshotItem,
+    updateTestimonialItem,
+    updatePricingItem,
+    updateFAQItem,
+    updateContact,
+    updateFooter,
+    updateNav,
+    updateAuthRegister,
+    updateAuthLogin,
+    updateHeroStyle,
+    updateHowItWorksStyle,
+    updateFeaturesStyle,
+    updateStatsStyle,
+    updateScreenshotsStyle,
+    updateTestimonialsStyle,
+    updateFAQStyle,
+    updateContactStyle,
+    updateFooterStyle,
+    resetConfig,
+    saveToDatabase,
+  } = useSiteConfig();
   return (
-    <SiteConfigContext.Provider value={siteConfig}>
+    <SiteConfigContext.Provider
+      value={{
+        config,
+        loading,
+        error,
+        setConfig,
+        updateHero,
+        updateHowItWorks,
+        updateHowItWorksItem,
+        updateFeatureItem,
+        updateStatsItem,
+        updateScreenshotItem,
+        updateTestimonialItem,
+        updatePricingItem,
+        updateFAQItem,
+        updateContact,
+        updateFooter,
+        updateNav,
+        updateAuthRegister,
+        updateAuthLogin,
+        updateHeroStyle,
+        updateHowItWorksStyle,
+        updateFeaturesStyle,
+        updateStatsStyle,
+        updateScreenshotsStyle,
+        updateTestimonialsStyle,
+        updateFAQStyle,
+        updateContactStyle,
+        updateFooterStyle,
+        resetConfig,
+        saveToDatabase,
+      }}
+    >
       {children}
     </SiteConfigContext.Provider>
   );

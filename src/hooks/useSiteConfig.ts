@@ -76,6 +76,28 @@ export interface AuthPageConfig {
   authLogoWidth: number;
   authLogoHeight: number;
   gSheetUrl: string;
+  // New fields for full registration form
+  referralCodeLabel: string;
+  referralCodePlaceholder: string;
+  accountLabel: string;
+  accountPlaceholder: string;
+  nicknameLabel: string;
+  nicknamePlaceholder: string;
+  passwordLabel: string;
+  passwordPlaceholder: string;
+  otpButtonText: string;
+  otpPlaceholder: string;
+  confirmCodeLabel: string;
+  confirmCodePlaceholder: string;
+  confirmCodeButtonText: string;
+  checkbox1Label: string;
+  checkbox2Label: string;
+  termsLinkText: string;
+  termsUrl: string;
+  confirmButtonText: string;
+  accountValidationText: string;
+  passwordShowIcon: string;
+  passwordHideIcon: string;
 }
 
 export interface SiteConfig {
@@ -299,21 +321,15 @@ export function useSiteConfig() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!loading && dbReady) {
-        supabase
-          .from('site_config')
-          .upsert({ id: 1, config_data: config, updated_at: new Date().toISOString() })
-          .then(({ error: saveErr }) => {
-            if (saveErr) console.error('Supabase auto-save error:', saveErr);
-          });
+        // Only sync to localStorage as cache, NO auto-save to Supabase
+        // Admin will use explicit Save button
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+        } catch {
+          // ignore storage errors
+        }
       }
-    }, 800);
-
-    // Also update localStorage as cache
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    } catch {
-      // ignore storage errors
-    }
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [config, loading, dbReady]);
@@ -454,6 +470,44 @@ export function useSiteConfig() {
       });
   }, []);
 
+  const saveToDatabase = useCallback(async (data?: SiteConfig) => {
+    const configToSave = data ?? config;
+    try {
+      // Primary: use Edge Function (service_role, bypasses RLS)
+      const { data: fnData, error: fnError } = await supabase.functions.invoke(
+        'update-site-config',
+        { body: { config_data: configToSave } }
+      );
+
+      if (fnError) {
+        console.error('Edge function save error:', fnError);
+        // Fallback: direct client update
+        const { error: saveErr } = await supabase
+          .from('site_config')
+          .update({ config_data: configToSave, updated_at: new Date().toISOString() })
+          .eq('id', 1);
+        if (saveErr) {
+          console.error('Supabase direct save fallback error:', saveErr);
+          return { success: false, error: saveErr.message };
+        }
+      } else if (fnData && !fnData.success) {
+        console.error('Edge function returned error:', fnData);
+        return { success: false, error: fnData.error || 'Lỗi server' };
+      }
+
+      // Also update local cache
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
+      } catch {
+        // ignore
+      }
+      return { success: true, error: null };
+    } catch (err) {
+      console.error('Save error:', err);
+      return { success: false, error: 'Lỗi kết nối' };
+    }
+  }, [config]);
+
   return {
     config,
     loading,
@@ -483,5 +537,6 @@ export function useSiteConfig() {
     updateContactStyle,
     updateFooterStyle,
     resetConfig,
+    saveToDatabase,
   };
 }
