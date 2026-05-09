@@ -66,16 +66,33 @@ export default function AdminDashboard() {
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaveError('');
-    const result = await saveToDatabase();
-    setSaving(false);
-    if (result.success) {
-      setSaved(true);
-      if (result.localOnly) {
-        setSaveError('Đã lưu local (DB offline)');
+    
+    // Hard timeout: force stop saving after 12s regardless
+    const timeoutId = setTimeout(() => {
+      setSaving(false);
+      setSaveError('Lỗi timeout - kiểm tra kết nối Supabase');
+      setTimeout(() => setSaveError(''), 3000);
+    }, 12000);
+    
+    try {
+      const result = await saveToDatabase();
+      clearTimeout(timeoutId);
+      setSaving(false);
+      if (result.success) {
+        setSaved(true);
+        if (result.localOnly) {
+          setSaveError('Đã lưu local (DB offline)');
+        }
+        setTimeout(() => { setSaved(false); setSaveError(''); }, 2000);
+      } else {
+        setSaveError(result.error ?? 'Lỗi lưu');
+        setTimeout(() => setSaveError(''), 3000);
       }
-      setTimeout(() => { setSaved(false); setSaveError(''); }, 2000);
-    } else {
-      setSaveError(result.error ?? 'Lỗi lưu');
+    } catch (err) {
+      clearTimeout(timeoutId);
+      setSaving(false);
+      console.error('Save error:', err);
+      setSaveError('Lỗi kết nối server');
       setTimeout(() => setSaveError(''), 3000);
     }
   }, [saveToDatabase]);

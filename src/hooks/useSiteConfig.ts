@@ -76,7 +76,6 @@ export interface AuthPageConfig {
   authLogoWidth: number;
   authLogoHeight: number;
   gSheetUrl: string;
-  // New fields for full registration form
   referralCodeLabel: string;
   referralCodePlaceholder: string;
   accountLabel: string;
@@ -220,6 +219,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
+// Helper: check if config_data is empty (null, undefined, {}, or no keys)
+function isEmptyConfigData(data: unknown): boolean {
+  if (!data) return true;
+  if (typeof data !== 'object') return true;
+  if (Array.isArray(data)) return data.length === 0;
+  return Object.keys(data).length === 0;
+}
+
 export function useSiteConfig() {
   const [config, setConfigState] = useState<SiteConfig>(() => mergeWithDefault({}));
   const [loading, setLoading] = useState(true);
@@ -234,6 +241,9 @@ export function useSiteConfig() {
     setDbReady(false);
 
     (async () => {
+      let source = 'default';
+      let mergedConfig: SiteConfig | null = null;
+
       try {
         // Try Supabase with timeout
         const { data, error: dbError } = await withTimeout(
@@ -245,100 +255,64 @@ export function useSiteConfig() {
           5000
         );
 
+        console.log('[useSiteConfig] DB result:', { hasData: !!data, config_data: data?.config_data, dbError: dbError?.message });
+
         if (!cancelled) {
           if (dbError) {
-            console.error('Supabase load error:', dbError);
+            console.error('[useSiteConfig] Supabase load error:', dbError);
             setError(dbError.message);
             dbEnabledRef.current = false;
-            // Fallback to localStorage
-            try {
-              const cached = localStorage.getItem(STORAGE_KEY);
-              if (cached) {
-                const parsed = JSON.parse(cached) as Record<string, unknown>;
-                setConfigState(mergeWithDefault(parsed));
-              }
-            } catch {
-              // ignore parse errors
-            }
-          } else if (data && data.config_data && Object.keys(data.config_data).length > 0) {
-            const merged = mergeWithDefault(data.config_data as Record<string, unknown>);
-            setConfigState(merged);
+          } else if (data && !isEmptyConfigData(data.config_data)) {
+            mergedConfig = mergeWithDefault(data.config_data as Record<string, unknown>);
             dbEnabledRef.current = true;
-            // Also sync to localStorage as fallback cache
+            source = 'supabase';
             try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedConfig));
             } catch {
-              // ignore storage errors
-            }
-          } else {
-            // No DB config yet - use default and seed
-            setConfigState(defaultSiteConfig);
-            // Seed default config into DB with key
-            try {
-              await withTimeout(
-                supabase
-                  .from('site_config')
-                  .upsert({ id: 1, key: 'default', config_data: defaultSiteConfig, updated_at: new Date().toISOString() }),
-                5000
-              );
-            } catch (seedErr) {
-              console.error('Seed default config error:', seedErr);
-              dbEnabledRef.current = false;
+              // ignore
             }
           }
-          setDbReady(true);
-          setLoading(false);
         }
       } catch (err) {
         if (!cancelled) {
-          console.error('Config load error:', err);
+          console.error('[useSiteConfig] Config load error:', err);
           setError('Không thể tải cấu hình từ server');
           dbEnabledRef.current = false;
-          // Fallback to localStorage
-          try {
-            const cached = localStorage.getItem(STORAGE_KEY);
-            if (cached) {
-              const parsed = JSON.parse(cached) as Record<string, unknown>;
-              setConfigState(mergeWithDefault(parsed));
-            }
-          } catch {
-            // ignore parse errors
-          }
-          setDbReady(true);
-          setLoading(false);
         }
+      }
+
+      // If no valid DB config, try localStorage
+      if (!mergedConfig) {
+        try {
+          const cached = localStorage.getItem(STORAGE_KEY);
+          if (cached) {
+            const parsed = JSON.parse(cached) as Record<string, unknown>;
+            mergedConfig = mergeWithDefault(parsed);
+            source = 'localStorage';
+            console.log('[useSiteConfig] Loaded from localStorage');
+          }
+        } catch (e) {
+          console.error('[useSiteConfig] localStorage parse error:', e);
+        }
+      }
+
+      // Final fallback: default
+      if (!mergedConfig) {
+        mergedConfig = defaultSiteConfig;
+        source = 'default';
+        console.log('[useSiteConfig] Loaded from default');
+      }
+
+      if (!cancelled) {
+        setConfigState(mergedConfig);
+        setDbReady(true);
+        setLoading(false);
+        console.log('[useSiteConfig] Final source:', source, '| hero.title:', mergedConfig.hero.title.substring(0, 30));
       }
     })();
 
-    // Subscribe to realtime updates
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    try {
-      channel = supabase
-        .channel('site_config_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'site_config', filter: 'id=eq.1' },
-          (payload) => {
-            if (!cancelled && payload.new && (payload.new as Record<string, unknown>).config_data) {
-              const newData = (payload.new as Record<string, unknown>).config_data as Record<string, unknown>;
-              const merged = mergeWithDefault(newData);
-              setConfigState(merged);
-              try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-              } catch {
-                // ignore
-              }
-            }
-          }
-        )
-        .subscribe();
-    } catch {
-      // ignore realtime subscription errors
-    }
-
     return () => {
       cancelled = true;
-      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
@@ -497,16 +471,19 @@ export function useSiteConfig() {
       // Always save to localStorage first
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
+        console.log('[saveToDatabase] Saved to localStorage');
       } catch {
         // ignore
       }
 
       // If DB is known to be disabled, skip network
       if (!dbEnabledRef.current) {
+        console.log('[saveToDatabase] DB disabled, skipping network');
         return { success: true, error: null, localOnly: true };
       }
 
       // Direct Supabase update with 8s timeout - include key to satisfy NOT NULL
+      console.log('[saveToDatabase] Trying Supabase upsert...');
       const { error: saveErr } = await withTimeout(
         supabase
           .from('site_config')
@@ -520,14 +497,15 @@ export function useSiteConfig() {
       );
 
       if (saveErr) {
-        console.error('Supabase save error:', saveErr);
+        console.error('[saveToDatabase] Supabase save error:', saveErr);
         dbEnabledRef.current = false;
         return { success: true, error: null, localOnly: true };
       }
 
+      console.log('[saveToDatabase] Supabase save OK');
       return { success: true, error: null, localOnly: false };
     } catch (err) {
-      console.error('Save error:', err);
+      console.error('[saveToDatabase] Save error:', err);
       dbEnabledRef.current = false;
       return { success: true, error: null, localOnly: true };
     }
