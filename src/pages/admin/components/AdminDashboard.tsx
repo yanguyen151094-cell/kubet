@@ -67,16 +67,8 @@ export default function AdminDashboard() {
     setSaving(true);
     setSaveError('');
     
-    // Hard timeout: force stop saving after 12s regardless
-    const timeoutId = setTimeout(() => {
-      setSaving(false);
-      setSaveError('Lỗi timeout - kiểm tra kết nối');
-      setTimeout(() => setSaveError(''), 3000);
-    }, 12000);
-    
     try {
       const result = await saveToDatabase();
-      clearTimeout(timeoutId);
       setSaving(false);
       if (result.success && !result.localOnly) {
         setSaved(true);
@@ -89,7 +81,6 @@ export default function AdminDashboard() {
         setTimeout(() => setSaveError(''), 3000);
       }
     } catch (err) {
-      clearTimeout(timeoutId);
       setSaving(false);
       console.error('Save error:', err);
       setSaveError('Lỗi kết nối server');
