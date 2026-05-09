@@ -6,6 +6,30 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+let cachedSupabase: ReturnType<typeof createClient> | null = null;
+let cachedUrl: string | null = null;
+let cachedKey: string | null = null;
+
+function getSupabase() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Server misconfigured: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  if (cachedSupabase && cachedUrl === supabaseUrl && cachedKey === serviceRoleKey) {
+    return cachedSupabase;
+  }
+
+  cachedUrl = supabaseUrl;
+  cachedKey = serviceRoleKey;
+  cachedSupabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  return cachedSupabase;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders, status: 204 });
@@ -29,21 +53,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = getSupabase();
 
-    if (!supabaseUrl || !serviceRoleKey) {
-      return new Response(JSON.stringify({ error: "Server misconfigured" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      });
-    }
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    // Upsert as a single JSONB row (same format as frontend)
     const { error } = await supabase
       .from("site_config")
       .upsert({ id: 1, config_data: configData, updated_at: new Date().toISOString() }, { onConflict: "id" });

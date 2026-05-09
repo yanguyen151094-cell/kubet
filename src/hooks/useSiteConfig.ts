@@ -424,6 +424,13 @@ export function useSiteConfig() {
 
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const cfg = data ?? config;
+    const payload = JSON.stringify({ config_data: cfg });
+    // Warn if payload is too large
+    const payloadMB = payload.length / (1024 * 1024);
+    console.log('[saveToDatabase] Payload size:', payloadMB.toFixed(2), 'MB');
+    if (payloadMB > 4) {
+      return { success: false, error: `Payload quá lớn (${payloadMB.toFixed(1)}MB). Giảm kích thước ảnh hoặc xóa bớt dữ liệu.` };
+    }
     try {
       const { getSupabaseFunctionsUrl, SUPABASE_ANON_KEY } = await import('@/lib/supabase');
       const url = getSupabaseFunctionsUrl('update-site-config');
@@ -434,7 +441,7 @@ export function useSiteConfig() {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'apikey': SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ config_data: cfg }),
+        body: payload,
       });
       if (!res.ok) {
         const errBody = await res.text();

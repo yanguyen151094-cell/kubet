@@ -5,7 +5,6 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   label: string;
   helpText?: string;
-  maxSize?: number;
 }
 
 function resizeImageToDataUrl(file: File, maxWidth: number, maxHeight: number, quality: number): Promise<string> {
@@ -21,8 +20,8 @@ function resizeImageToDataUrl(file: File, maxWidth: number, maxHeight: number, q
           height *= ratio;
         }
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject(new Error('Canvas context not available'));
         ctx.drawImage(img, 0, 0, width, height);
@@ -37,7 +36,27 @@ function resizeImageToDataUrl(file: File, maxWidth: number, maxHeight: number, q
   });
 }
 
-export default function ImageUpload({ value, onChange, label, helpText, maxSize = 800 }: ImageUploadProps) {
+async function compressUntilSmall(file: File): Promise<string> {
+  // Try progressively smaller sizes until base64 < 200KB
+  const attempts = [
+    { size: 600, quality: 0.6 },
+    { size: 400, quality: 0.55 },
+    { size: 300, quality: 0.5 },
+  ];
+
+  for (const attempt of attempts) {
+    const dataUrl = await resizeImageToDataUrl(file, attempt.size, attempt.size, attempt.quality);
+    const base64Size = Math.round(dataUrl.length * 0.75);
+    if (base64Size <= 200 * 1024) {
+      return dataUrl;
+    }
+  }
+
+  // Last resort: 200px, quality 0.4
+  return resizeImageToDataUrl(file, 200, 200, 0.4);
+}
+
+export default function ImageUpload({ value, onChange, label, helpText }: ImageUploadProps) {
   const [previewUrl, setPreviewUrl] = useState(value);
   const [dragOver, setDragOver] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -58,29 +77,20 @@ export default function ImageUpload({ value, onChange, label, helpText, maxSize 
         setTimeout(() => setErrorMsg(''), 3000);
         return;
       }
-      // Check file size before processing
-      if (file.size > 5 * 1024 * 1024) {
-        setErrorMsg('Ảnh quá lớn (>5MB), vui lòng chọn ảnh nhỏ hơn');
+      if (file.size > 3 * 1024 * 1024) {
+        setErrorMsg('Ảnh quá lớn (>3MB), vui lòng chọn ảnh nhỏ hơn');
         setTimeout(() => setErrorMsg(''), 4000);
         return;
       }
       setProcessing(true);
       setErrorMsg('');
       try {
-        const dataUrl = await resizeImageToDataUrl(file, maxSize, maxSize, 0.7);
-        // Check base64 size
-        const base64Size = dataUrl.length * 0.75; // approximate byte size
-        if (base64Size > 500 * 1024) {
-          // If still >500KB, resize smaller
-          const smaller = await resizeImageToDataUrl(file, 500, 500, 0.6);
-          editCountRef.current += 1;
-          setPreviewUrl(smaller);
-          onChange(smaller);
-        } else {
-          editCountRef.current += 1;
-          setPreviewUrl(dataUrl);
-          onChange(dataUrl);
-        }
+        const dataUrl = await compressUntilSmall(file);
+        const base64Size = Math.round(dataUrl.length * 0.75);
+        console.log('[ImageUpload] Compressed to', Math.round(base64Size / 1024), 'KB');
+        editCountRef.current += 1;
+        setPreviewUrl(dataUrl);
+        onChange(dataUrl);
       } catch (err) {
         console.error('[ImageUpload] Process error:', (err as Error).message);
         setErrorMsg('Không thể xử lý ảnh, vui lòng thử lại');
@@ -89,7 +99,7 @@ export default function ImageUpload({ value, onChange, label, helpText, maxSize 
         setProcessing(false);
       }
     },
-    [onChange, maxSize]
+    [onChange]
   );
 
   const handleFileChange = useCallback(
@@ -150,7 +160,6 @@ export default function ImageUpload({ value, onChange, label, helpText, maxSize 
         )}
       </div>
 
-      {/* URL input — always show so user can paste URL directly */}
       <div className="flex items-center gap-2">
         <input
           type="text"
