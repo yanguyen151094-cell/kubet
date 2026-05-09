@@ -39,10 +39,13 @@ export default function AdminDashboard() {
   const [saveError, setSaveError] = useState('');
 
   const handleSave = useCallback(async () => {
+    console.log('[handleSave] Start save...');
     setSaving(true);
     setSaveError('');
     try {
+      console.log('[handleSave] Calling saveToDatabase...');
       const result = await saveToDatabase();
+      console.log('[handleSave] Result:', result);
       setSaving(false);
       if (result.success) {
         setSaved(true);
@@ -52,6 +55,7 @@ export default function AdminDashboard() {
         setTimeout(() => setSaveError(''), 4000);
       }
     } catch (err) {
+      console.error('[handleSave] Exception:', err);
       setSaving(false);
       setSaveError('Lỗi kết nối server');
       setTimeout(() => setSaveError(''), 4000);

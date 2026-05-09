@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 import { defaultSiteConfig } from '@/mocks/siteConfig';
 
 export interface HowItWorkItem {
@@ -431,9 +431,17 @@ export function useSiteConfig() {
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const cfg = data ?? configRef.current;
     try {
+      console.log('[saveToDatabase] ========== START ==========');
       console.log('[saveToDatabase] Saving directly to Supabase...');
       console.log('[saveToDatabase] Config logo length:', cfg.logo?.length ?? 0);
       console.log('[saveToDatabase] Config keys:', Object.keys(cfg));
+      console.log('[saveToDatabase] Supabase URL exists?', !!SUPABASE_URL);
+      console.log('[saveToDatabase] Supabase KEY exists?', !!SUPABASE_ANON_KEY);
+      
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        console.error('[saveToDatabase] MISSING env vars!');
+        return { success: false, error: 'Thiếu cấu hình Supabase' };
+      }
       
       const payload = {
         id: 1,
@@ -441,20 +449,32 @@ export function useSiteConfig() {
         updated_at: new Date().toISOString(),
       };
       
-      console.log('[saveToDatabase] Payload size estimate:', JSON.stringify(payload).length, 'chars');
+      const payloadString = JSON.stringify(payload);
+      console.log('[saveToDatabase] Payload size:', payloadString.length, 'chars');
       
-      const { error } = await supabase
+      if (payloadString.length > 800000) {
+        console.error('[saveToDatabase] Payload too large!');
+        return { success: false, error: 'Dữ liệu quá lớn, vui lòng giảm kích thước ảnh' };
+      }
+      
+      console.log('[saveToDatabase] Calling supabase.upsert...');
+      const { data: resultData, error } = await supabase
         .from('site_config')
-        .upsert(payload, { onConflict: 'id' });
+        .upsert(payload, { onConflict: 'id' })
+        .select();
         
+      console.log('[saveToDatabase] upsert returned. error:', error);
+      console.log('[saveToDatabase] upsert returned. data:', resultData);
+      
       if (error) {
-        console.error('[saveToDatabase] Supabase error:', error);
+        console.error('[saveToDatabase] Supabase error:', JSON.stringify(error));
         return { success: false, error: error.message };
       }
       console.log('[saveToDatabase] Saved successfully!');
       return { success: true, error: null };
     } catch (err) {
-      console.error('[saveToDatabase] Exception:', err);
+      console.error('[saveToDatabase] EXCEPTION:', err);
+      console.error('[saveToDatabase] EXCEPTION stack:', (err as Error).stack);
       return { success: false, error: (err as Error).message };
     }
   }, []); // Không cần dependency config nữa vì dùng ref
