@@ -70,7 +70,7 @@ export default function AdminDashboard() {
     // Hard timeout: force stop saving after 12s regardless
     const timeoutId = setTimeout(() => {
       setSaving(false);
-      setSaveError('Lỗi timeout - kiểm tra kết nối Supabase');
+      setSaveError('Lỗi timeout - kiểm tra kết nối');
       setTimeout(() => setSaveError(''), 3000);
     }, 12000);
     
@@ -78,12 +78,12 @@ export default function AdminDashboard() {
       const result = await saveToDatabase();
       clearTimeout(timeoutId);
       setSaving(false);
-      if (result.success) {
+      if (result.success && !result.localOnly) {
         setSaved(true);
-        if (result.localOnly) {
-          setSaveError('Đã lưu local (DB offline)');
-        }
         setTimeout(() => { setSaved(false); setSaveError(''); }, 2000);
+      } else if (result.success && result.localOnly) {
+        setSaveError('Đã lưu local (DB lỗi: ' + (result.error || 'unknown') + ')');
+        setTimeout(() => setSaveError(''), 4000);
       } else {
         setSaveError(result.error ?? 'Lỗi lưu');
         setTimeout(() => setSaveError(''), 3000);

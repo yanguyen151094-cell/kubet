@@ -100,7 +100,6 @@ export interface AuthPageConfig {
 }
 
 export interface SiteConfig {
-  _dbVersion?: number;
   logo: string;
   logoWidth: number;
   logoHeight: number;
@@ -188,7 +187,6 @@ export interface SiteConfig {
 }
 
 const STORAGE_KEY = 'salekit_site_config_v3';
-const DB_TS_KEY = 'salekit_db_timestamp';
 
 function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = { ...target };
@@ -210,15 +208,6 @@ function mergeWithDefault(stored: Record<string, unknown>): SiteConfig {
   return merged as SiteConfig;
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
-    ),
-  ]);
-}
-
 function isEmptyConfigData(data: unknown): boolean {
   if (!data) return true;
   if (typeof data !== 'object') return true;
@@ -227,7 +216,6 @@ function isEmptyConfigData(data: unknown): boolean {
 }
 
 export function useSiteConfig() {
-  // State: always starts from default merged with localStorage
   const [config, setConfigState] = useState<SiteConfig>(() => {
     try {
       const cached = localStorage.getItem(STORAGE_KEY);
@@ -239,84 +227,56 @@ export function useSiteConfig() {
     return mergeWithDefault({});
   });
   const [loading, setLoading] = useState(true);
-  const [dbReady, setDbReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const dbEnabledRef = useRef(true);
-  const refreshCountRef = useRef(0);
   const configRef = useRef<SiteConfig>(config);
-  const dbVersionRef = useRef<number>(0);
-  const savedLocallyRef = useRef(false);
+  const lastFetchRef = useRef(0);
 
   useEffect(() => {
     configRef.current = config;
   }, [config]);
 
-  // CORE: fetch config from DB — DB is the source of truth
+  // fetchConfig: ALWAYS try DB first. Never permanently disable DB.
   const fetchConfig = useCallback(async (sourceHint?: string) => {
-    refreshCountRef.current += 1;
-    const rc = refreshCountRef.current;
+    const now = Date.now();
+    if (now - lastFetchRef.current < 500) return; // debounce 500ms
+    lastFetchRef.current = now;
     setLoading(true);
 
-    let dbTimestamp = 0;
     let dbData: Record<string, unknown> | null = null;
+    let dbOk = false;
 
     try {
-      const { data, error: dbError } = await withTimeout(
-        supabase
-          .from('site_config')
-          .select('config_data, updated_at')
-          .eq('id', 1)
-          .maybeSingle(),
-        5000
-      );
+      const { data, error: dbError } = await supabase
+        .from('site_config')
+        .select('config_data, updated_at')
+        .eq('id', 1)
+        .maybeSingle();
 
       if (dbError) {
-        console.error('[useSiteConfig] DB error #' + rc + ':', dbError.message, sourceHint);
+        console.error('[useSiteConfig] DB error:', dbError.message, sourceHint);
         setError(dbError.message);
-        dbEnabledRef.current = false;
       } else if (data && !isEmptyConfigData(data.config_data)) {
-        dbTimestamp = new Date(data.updated_at as string).getTime();
         dbData = data.config_data as Record<string, unknown>;
-        dbEnabledRef.current = true;
+        dbOk = true;
         setError(null);
-        // Remember DB version for comparison
-        dbVersionRef.current = dbTimestamp;
-        // Save DB timestamp
-        try { localStorage.setItem(DB_TS_KEY, String(dbTimestamp)); } catch { /* ignore */ }
-        console.log('[useSiteConfig] DB loaded #' + rc + ' | updated_at:', new Date(dbTimestamp).toLocaleTimeString(), '| sourceHint:', sourceHint);
-      } else {
-        console.log('[useSiteConfig] DB empty or null #' + rc);
+        console.log('[useSiteConfig] DB loaded | updated_at:', data.updated_at, '| sourceHint:', sourceHint);
       }
     } catch (err) {
-      console.error('[useSiteConfig] Load error #' + rc + ':', err);
-      dbEnabledRef.current = false;
+      console.error('[useSiteConfig] Load error:', err);
+      setError((err as Error).message);
     }
 
     if (dbData) {
       const merged = mergeWithDefault(dbData);
-      merged._dbVersion = dbTimestamp;
-
-      // Always trust DB data on initial load and when cross-tab sync
-      // Only skip if this SAME tab just saved (within 3 seconds)
-      const localTs = Number(localStorage.getItem(DB_TS_KEY)) || 0;
-      const justSaved = savedLocallyRef.current && Math.abs(localTs - dbTimestamp) < 3000;
-
-      if (justSaved) {
-        console.log('[useSiteConfig] Just saved locally, keeping current state #' + rc);
-        savedLocallyRef.current = false;
-      } else {
-        setConfigState(merged);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch { /* ignore */ }
-        console.log('[useSiteConfig] Applied DB data #' + rc, '| hero.title:', merged.hero.title.substring(0, 30));
-      }
+      setConfigState(merged);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch { /* ignore */ }
     } else {
-      // No DB: try localStorage as fallback
+      // DB failed: use localStorage as fallback
       try {
         const cached = localStorage.getItem(STORAGE_KEY);
         if (cached) {
           const parsed = JSON.parse(cached) as Record<string, unknown>;
           const merged = mergeWithDefault(parsed);
-          // Only update if different from current
           if (JSON.stringify(merged) !== JSON.stringify(configRef.current)) {
             setConfigState(merged);
           }
@@ -324,7 +284,6 @@ export function useSiteConfig() {
       } catch { /* ignore */ }
     }
 
-    setDbReady(true);
     setLoading(false);
   }, []);
 
@@ -333,15 +292,12 @@ export function useSiteConfig() {
     fetchConfig('initial');
   }, [fetchConfig]);
 
-  // Cross-tab sync: when localStorage changes from another tab, re-fetch from DB
+  // Cross-tab sync via localStorage
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY || e.key === DB_TS_KEY) {
-        // Only act if another tab changed it (e.newValue different from current)
-        if (e.newValue && e.newValue !== JSON.stringify(configRef.current)) {
-          console.log('[useSiteConfig] Storage changed from other tab, re-fetching...');
-          fetchConfig('storage-event');
-        }
+      if (e.key === 'salekit_sync_trigger') {
+        console.log('[useSiteConfig] Sync trigger from another tab');
+        fetchConfig('cross-tab');
       }
     };
     window.addEventListener('storage', handleStorage);
@@ -359,19 +315,14 @@ export function useSiteConfig() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [fetchConfig]);
 
-  // Save to localStorage whenever config changes (for fast UI)
+  // Auto-sync to localStorage
   useEffect(() => {
-    if (!loading && dbReady) {
-      const timer = setTimeout(() => {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-        } catch { /* ignore */ }
-      }, 100);
-      return () => clearTimeout(timer);
+    if (!loading) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch { /* ignore */ }
     }
-  }, [config, loading, dbReady]);
+  }, [config, loading]);
 
-  // setConfigWithVersion: update state + mark as locally saved
+  // setConfigWithVersion: update state
   const setConfigWithVersion = useCallback((updater: SiteConfig | ((prev: SiteConfig) => SiteConfig)) => {
     setConfigState((prev) => {
       const newConfig = typeof updater === 'function'
@@ -381,15 +332,12 @@ export function useSiteConfig() {
       configRef.current = merged;
       return merged;
     });
-    // Mark that we just made local changes — don't overwrite from DB for 3s
-    savedLocallyRef.current = true;
   }, []);
 
   const setConfig = useCallback((newConfig: Partial<SiteConfig>) => {
     setConfigWithVersion((prev) => ({ ...prev, ...newConfig }));
   }, [setConfigWithVersion]);
 
-  // (Tất cả các update functions giữ nguyên như cũ...)
   const updateHero = useCallback((hero: Partial<SiteConfig['hero']>) => {
     setConfigWithVersion((prev) => ({ ...prev, hero: { ...prev.hero, ...hero } }));
   }, [setConfigWithVersion]);
@@ -515,66 +463,40 @@ export function useSiteConfig() {
     setConfigState(reset);
     configRef.current = reset;
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(DB_TS_KEY);
-    supabase
-      .from('site_config')
-      .upsert({ id: 1, config_data: reset, updated_at: new Date().toISOString() })
-      .catch((err: Error) => console.error('Supabase reset error:', err));
   }, []);
 
-  // Save directly to Supabase — then trigger cross-tab sync
+  // Save directly to Supabase - ALWAYS try DB, never permanently disable
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const configToSave = data ?? configRef.current;
 
     try {
       // 1. Save to localStorage first for instant UI
-      const cleanConfig = { ...configToSave };
-      delete (cleanConfig as Record<string, unknown>)._dbVersion;
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanConfig)); } catch { /* ignore */ }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave)); } catch { /* ignore */ }
 
-      // 2. If DB disabled, skip
-      if (!dbEnabledRef.current) {
-        console.log('[saveToDatabase] DB disabled, local only');
-        return { success: true, error: null, localOnly: true };
-      }
-
-      // 3. Save to Supabase
+      // 2. ALWAYS try to save to Supabase
       console.log('[saveToDatabase] Saving to Supabase...');
       const now = new Date().toISOString();
-      const { error: saveErr } = await withTimeout(
-        supabase
-          .from('site_config')
-          .upsert({ id: 1, config_data: cleanConfig, updated_at: now }),
-        8000
-      );
+      const { error: saveErr } = await supabase
+        .from('site_config')
+        .upsert({ id: 1, config_data: configToSave, updated_at: now }, { onConflict: 'id' });
 
       if (saveErr) {
         console.error('[saveToDatabase] Save error:', saveErr);
-        dbEnabledRef.current = false;
-        return { success: true, error: null, localOnly: true };
+        return { success: false, error: saveErr.message, localOnly: true };
       }
 
-      // 4. Mark that we just saved so fetchConfig won't overwrite
-      savedLocallyRef.current = true;
-      const ts = new Date(now).getTime();
-      try { localStorage.setItem(DB_TS_KEY, String(ts)); } catch { /* ignore */ }
-
-      // 5. Trigger cross-tab sync by updating a dummy key
+      // 3. Trigger cross-tab sync
       try {
         localStorage.setItem('salekit_sync_trigger', String(Date.now()));
       } catch { /* ignore */ }
 
-      // 6. Fetch fresh from DB to confirm
-      await fetchConfig('after-save');
-
-      console.log('[saveToDatabase] Save + sync OK');
+      console.log('[saveToDatabase] Save OK');
       return { success: true, error: null, localOnly: false };
     } catch (err) {
       console.error('[saveToDatabase] Error:', err);
-      dbEnabledRef.current = false;
-      return { success: true, error: null, localOnly: true };
+      return { success: false, error: (err as Error).message, localOnly: true };
     }
-  }, [fetchConfig]);
+  }, []);
 
   return {
     config,
