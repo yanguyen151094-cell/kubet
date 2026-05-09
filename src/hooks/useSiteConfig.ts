@@ -425,11 +425,15 @@ export function useSiteConfig() {
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const cfg = data ?? config;
     try {
-      const { getSupabaseFunctionsUrl } = await import('@/lib/supabase');
+      const { getSupabaseFunctionsUrl, SUPABASE_ANON_KEY } = await import('@/lib/supabase');
       const url = getSupabaseFunctionsUrl('update-site-config');
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
         body: JSON.stringify({ config_data: cfg }),
       });
       if (!res.ok) {
