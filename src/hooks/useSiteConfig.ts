@@ -424,30 +424,19 @@ export function useSiteConfig() {
 
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
     const cfg = data ?? config;
-    const payload = JSON.stringify({ config_data: cfg });
-    // Warn if payload is too large
-    const payloadMB = payload.length / (1024 * 1024);
-    console.log('[saveToDatabase] Payload size:', payloadMB.toFixed(2), 'MB');
-    if (payloadMB > 4) {
-      return { success: false, error: `Payload quá lớn (${payloadMB.toFixed(1)}MB). Giảm kích thước ảnh hoặc xóa bớt dữ liệu.` };
-    }
     try {
-      const { getSupabaseFunctionsUrl, SUPABASE_ANON_KEY } = await import('@/lib/supabase');
-      const url = getSupabaseFunctionsUrl('update-site-config');
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: payload,
-      });
-      if (!res.ok) {
-        const errBody = await res.text();
-        console.error('[saveToDatabase] Edge function error:', res.status, errBody);
-        return { success: false, error: `HTTP ${res.status}: ${errBody}` };
+      console.log('[saveToDatabase] Saving directly to Supabase...');
+      const { error } = await supabase
+        .from('site_config')
+        .upsert(
+          { id: 1, config_data: cfg, updated_at: new Date().toISOString() },
+          { onConflict: 'id' }
+        );
+      if (error) {
+        console.error('[saveToDatabase] Supabase error:', error);
+        return { success: false, error: error.message };
       }
+      console.log('[saveToDatabase] Saved successfully!');
       return { success: true, error: null };
     } catch (err) {
       console.error('[saveToDatabase] Exception:', err);
