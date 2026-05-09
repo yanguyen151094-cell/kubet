@@ -84,10 +84,10 @@ export default function RegisterPage() {
       <div className="flex-1 flex items-start justify-center px-3 md:px-4 py-4 md:py-8">
         <div className="w-full max-w-md">
           {/* Card */}
-          <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: c.cardBg, borderColor: '#e5e5e5' }}>
+          <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: c.cardBg, borderColor: c.borderColor }}>
             {/* Header */}
-            <div className="px-3 md:px-4 py-3 border-b flex items-center justify-center relative" style={{ borderColor: '#e5e5e5' }}>
-              <h1 className="text-sm md:text-base font-bold tracking-wider" style={{ color: '#2196f3' }}>
+            <div className="px-3 md:px-4 py-3 border-b flex items-center justify-center relative" style={{ borderColor: c.borderColor }}>
+              <h1 className="text-sm md:text-base font-bold tracking-wider" style={{ color: c.accentColor }}>
                 {c.title}
               </h1>
               <button
@@ -100,7 +100,7 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-3 md:p-4 space-y-2.5 md:space-y-3">
-              {/* Mã giới thiệu — mobile: label above input; desktop: side by side */}
+              {/* Mã giới thiệu */}
               <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
                 <label className="text-sm text-gray-700 md:w-24 md:flex-shrink-0 md:text-right">{c.referralCodeLabel}</label>
                 <input
@@ -110,7 +110,7 @@ export default function RegisterPage() {
                   onChange={(e) => setReferralCode(e.target.value)}
                   placeholder={c.referralCodePlaceholder}
                   className="flex-1 px-3 py-2 text-sm rounded-sm border focus:outline-none"
-                  style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
+                  style={{ backgroundColor: c.cardBg, borderColor: c.borderColor }}
                 />
               </div>
 
@@ -126,7 +126,7 @@ export default function RegisterPage() {
                     placeholder={c.accountPlaceholder}
                     required
                     className="w-full px-3 py-2 text-sm rounded-sm border focus:outline-none"
-                    style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
+                    style={{ backgroundColor: c.cardBg, borderColor: c.borderColor }}
                   />
                   {accountError && (
                     <p className="text-xs text-red-500 mt-1">{c.accountValidationText}</p>
@@ -144,7 +144,7 @@ export default function RegisterPage() {
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder={c.nicknamePlaceholder}
                   className="flex-1 px-3 py-2 text-sm rounded-sm border focus:outline-none"
-                  style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
+                  style={{ backgroundColor: c.cardBg, borderColor: c.borderColor }}
                 />
               </div>
 
@@ -160,21 +160,21 @@ export default function RegisterPage() {
                     placeholder={c.passwordPlaceholder}
                     required
                     className="w-full px-3 py-2 pr-10 text-sm rounded-sm border focus:outline-none"
-                    style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
+                    style={{ backgroundColor: c.cardBg, borderColor: c.borderColor }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
-                    <i className={`${showPassword ? 'ri-eye-off-line' : 'ri-eye-line'} w-5 h-5 flex items-center justify-center`} />
+                    <i className={`${showPassword ? c.passwordHideIcon : c.passwordShowIcon} w-5 h-5 flex items-center justify-center`} />
                   </button>
                 </div>
               </div>
 
-              <hr className="border-gray-200 my-1" />
+              <hr className="my-1" style={{ borderColor: c.borderColor }} />
 
-              {/* SĐT — không có nút gửi mã */}
+              {/* SĐT */}
               <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
                 <label className="text-sm text-gray-700 md:w-24 md:flex-shrink-0 md:text-right">{c.phoneLabel}</label>
                 <input
@@ -185,11 +185,11 @@ export default function RegisterPage() {
                   placeholder={c.otpPlaceholder}
                   required
                   className="flex-1 px-3 py-2 text-sm rounded-sm border focus:outline-none"
-                  style={{ backgroundColor: '#f0f0f0', borderColor: '#e5e5e5' }}
+                  style={{ backgroundColor: c.cardBg, borderColor: c.borderColor }}
                 />
               </div>
 
-              <hr className="border-gray-200 my-1" />
+              <hr className="my-1" style={{ borderColor: c.borderColor }} />
 
               {/* Checkbox 1 */}
               <div className="flex items-start gap-2">
@@ -198,8 +198,8 @@ export default function RegisterPage() {
                   onClick={() => setCheckbox1(!checkbox1)}
                   className="w-5 h-5 flex-shrink-0 flex items-center justify-center border rounded-sm mt-0.5 cursor-pointer"
                   style={{
-                    borderColor: '#4caf50',
-                    backgroundColor: checkbox1 ? '#4caf50' : '#fff',
+                    borderColor: c.accentColor,
+                    backgroundColor: checkbox1 ? c.accentColor : '#fff',
                   }}
                 >
                   {checkbox1 && <i className="ri-check-line text-white w-4 h-4 flex items-center justify-center" />}
@@ -214,15 +214,15 @@ export default function RegisterPage() {
                   onClick={() => setCheckbox2(!checkbox2)}
                   className="w-5 h-5 flex-shrink-0 flex items-center justify-center border rounded-sm mt-0.5 cursor-pointer"
                   style={{
-                    borderColor: '#4caf50',
-                    backgroundColor: checkbox2 ? '#4caf50' : '#fff',
+                    borderColor: c.accentColor,
+                    backgroundColor: checkbox2 ? c.accentColor : '#fff',
                   }}
                 >
                   {checkbox2 && <i className="ri-check-line text-white w-4 h-4 flex items-center justify-center" />}
                 </button>
                 <span className="text-xs md:text-sm text-gray-700 leading-relaxed">
                   {c.checkbox2Label}{' '}
-                  <a href={c.termsUrl} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#2196f3' }}>
+                  <a href={c.termsUrl} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: c.accentColor }}>
                     {c.termsLinkText}
                   </a>
                 </span>
@@ -233,7 +233,7 @@ export default function RegisterPage() {
                 type="submit"
                 disabled={status === 'submitting'}
                 className="w-full text-white text-sm font-medium py-3 rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-                style={{ backgroundColor: '#9e9e9e' }}
+                style={{ backgroundColor: c.accentColor }}
               >
                 {status === 'submitting' ? (
                   <span className="inline-flex items-center gap-2">

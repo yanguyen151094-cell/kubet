@@ -4,8 +4,6 @@ import type { SiteConfig, HowItWorkItem, FeatureItem, StatItem, ScreenshotItem, 
 
 interface SiteConfigContextType {
   config: SiteConfig;
-  loading: boolean;
-  error: string | null;
   setConfig: (config: Partial<SiteConfig>) => void;
   updateHero: (hero: Partial<SiteConfig['hero']>) => void;
   updateHowItWorks: (howItWorks: Partial<SiteConfig['howItWorks']>) => void;
@@ -31,8 +29,7 @@ interface SiteConfigContextType {
   updateContactStyle: (style: Partial<SiteConfig['contactStyle']>) => void;
   updateFooterStyle: (style: Partial<SiteConfig['footerStyle']>) => void;
   resetConfig: () => void;
-  saveToDatabase: (data?: SiteConfig) => Promise<{ success: boolean; error: string | null; localOnly?: boolean }>;
-  fetchConfig: (sourceHint?: string) => Promise<{ source: string; config: SiteConfig }>;
+  saveToDatabase: (data?: SiteConfig) => Promise<{ success: boolean; error: string | null }>;
 }
 
 const SiteConfigContext = createContext<SiteConfigContextType | null>(null);
@@ -40,8 +37,6 @@ const SiteConfigContext = createContext<SiteConfigContextType | null>(null);
 export function SiteConfigProvider({ children }: { children: React.ReactNode }) {
   const {
     config,
-    loading,
-    error,
     setConfig,
     updateHero,
     updateHowItWorks,
@@ -68,14 +63,11 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
     updateFooterStyle,
     resetConfig,
     saveToDatabase,
-    fetchConfig,
   } = useSiteConfig();
   return (
     <SiteConfigContext.Provider
       value={{
         config,
-        loading,
-        error,
         setConfig,
         updateHero,
         updateHowItWorks,
@@ -102,7 +94,6 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
         updateFooterStyle,
         resetConfig,
         saveToDatabase,
-        fetchConfig,
       }}
     >
       {children}

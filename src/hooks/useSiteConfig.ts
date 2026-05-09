@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { defaultSiteConfig } from '@/mocks/siteConfig';
 
@@ -100,6 +100,7 @@ export interface AuthPageConfig {
 }
 
 export interface SiteConfig {
+  version: number;
   logo: string;
   logoWidth: number;
   logoHeight: number;
@@ -187,342 +188,179 @@ export interface SiteConfig {
   };
 }
 
-const STORAGE_KEY = 'salekit_site_config_v3';
-
-function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = { ...target };
-  for (const key in source) {
-    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-      result[key] = deepMerge(
-        (target[key] as Record<string, unknown>) || {},
-        source[key] as Record<string, unknown>
-      );
-    } else {
-      result[key] = source[key];
-    }
-  }
-  return result;
-}
-
-function mergeWithDefault(stored: Record<string, unknown>): SiteConfig {
-  const merged = deepMerge(defaultSiteConfig as unknown as Record<string, unknown>, stored);
-  return merged as SiteConfig;
-}
-
 export function useSiteConfig() {
-  const [config, setConfigState] = useState<SiteConfig>(() => {
-    try {
-      const cached = localStorage.getItem(STORAGE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached) as Record<string, unknown>;
-        return mergeWithDefault(parsed);
-      }
-    } catch { /* ignore */ }
-    return mergeWithDefault({});
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const configRef = useRef<SiteConfig>(config);
-  const lastFetchRef = useRef(0);
+  const [config, setConfig] = useState<SiteConfig>(() => ({ ...defaultSiteConfig }));
 
+  // Luôn fetch từ DB khi mount - DB là nguồn sự thật
   useEffect(() => {
-    configRef.current = config;
-  }, [config]);
-
-  const fetchConfig = useCallback(async (sourceHint?: string) => {
-    const now = Date.now();
-    if (now - lastFetchRef.current < 500) return { source: 'throttled', config: configRef.current };
-    lastFetchRef.current = now;
-    setLoading(true);
-    console.log(`[fetchConfig] START source=${sourceHint}`);
-
-    let merged: SiteConfig | null = null;
-    let source = 'default';
-
-    // 1. ALWAYS try localStorage FIRST — it has the freshest data (saved before DB call)
-    try {
-      const cached = localStorage.getItem(STORAGE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached) as Record<string, unknown>;
-        merged = mergeWithDefault(parsed);
-        source = 'localStorage';
-        console.log('[fetchConfig] Loaded from localStorage (primary source)');
-      }
-    } catch { /* ignore */ }
-
-    // 2. Fallback to DB only if localStorage is empty
-    if (!merged) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-        const { data, error: dbError } = await supabase
-          .from('site_config')
-          .select('config_data')
-          .eq('id', 1)
-          .abortSignal(controller.signal)
-          .maybeSingle();
-
-        clearTimeout(timeoutId);
-
-        if (!dbError && data?.config_data) {
-          const parsed = data.config_data as Record<string, unknown>;
-          merged = mergeWithDefault(parsed);
-          source = 'db';
-          console.log('[fetchConfig] Loaded from DB');
-          // Also cache to localStorage for next time
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-          } catch { /* ignore */ }
-        } else if (dbError) {
-          console.warn('[fetchConfig] DB error:', dbError.message);
+    supabase
+      .from('site_config')
+      .select('config_data')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!error && data?.config_data) {
+          const dbConfig = data.config_data as SiteConfig;
+          setConfig(dbConfig);
         }
-      } catch (err) {
-        console.warn('[fetchConfig] DB fetch failed:', (err as Error).message);
-      }
-    }
-
-    // 3. Final fallback to default
-    if (!merged) {
-      merged = mergeWithDefault({});
-      source = 'default';
-      console.log('[fetchConfig] Using default config');
-    }
-
-    setConfigState(merged);
-    configRef.current = merged;
-    setError(null);
-    setLoading(false);
-    console.log('[fetchConfig] END source=' + source);
-    return { source, config: merged };
+      })
+      .catch(() => {
+        // DB lỗi - giữ default
+      });
   }, []);
 
-  useEffect(() => {
-    fetchConfig('initial');
-  }, [fetchConfig]);
-
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'salekit_sync_trigger') {
-        console.log('[useSiteConfig] Sync trigger from another tab');
-        fetchConfig('cross-tab');
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, [fetchConfig]);
-
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (!document.hidden) {
-        fetchConfig('visibility');
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [fetchConfig]);
-
-  useEffect(() => {
-    if (!loading) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch { /* ignore */ }
-    }
-  }, [config, loading]);
-
-  const setConfigWithVersion = useCallback((updater: SiteConfig | ((prev: SiteConfig) => SiteConfig)) => {
-    setConfigState((prev) => {
-      const newConfig = typeof updater === 'function'
-        ? (updater as (prev: SiteConfig) => SiteConfig)(prev)
-        : { ...prev, ...updater };
-      const merged = mergeWithDefault(newConfig as unknown as Record<string, unknown>);
-      configRef.current = merged;
-      return merged;
-    });
+  // ---- Setters ----
+  const setConfigDirect = useCallback((newCfg: SiteConfig) => {
+    setConfig(newCfg);
   }, []);
-
-  const setConfig = useCallback((newConfig: Partial<SiteConfig>) => {
-    setConfigWithVersion((prev) => ({ ...prev, ...newConfig }));
-  }, [setConfigWithVersion]);
 
   const updateHero = useCallback((hero: Partial<SiteConfig['hero']>) => {
-    setConfigWithVersion((prev) => ({ ...prev, hero: { ...prev.hero, ...hero } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, hero: { ...prev.hero, ...hero } }));
+  }, []);
 
   const updateHowItWorks = useCallback((howItWorks: Partial<SiteConfig['howItWorks']>) => {
-    setConfigWithVersion((prev) => ({ ...prev, howItWorks: { ...prev.howItWorks, ...howItWorks } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, howItWorks: { ...prev.howItWorks, ...howItWorks } }));
+  }, []);
 
   const updateHowItWorksItem = useCallback((index: number, item: Partial<HowItWorkItem>) => {
-    setConfigWithVersion((prev) => {
+    setConfig((prev) => {
       const items = [...prev.howItWorks.items];
       items[index] = { ...items[index], ...item };
       return { ...prev, howItWorks: { ...prev.howItWorks, items } };
     });
-  }, [setConfigWithVersion]);
+  }, []);
 
   const updateFeatureItem = useCallback((index: number, item: Partial<FeatureItem>) => {
-    setConfigWithVersion((prev) => {
+    setConfig((prev) => {
       const items = [...prev.features.items];
       items[index] = { ...items[index], ...item };
       return { ...prev, features: { ...prev.features, items } };
     });
-  }, [setConfigWithVersion]);
+  }, []);
 
   const updateStatsItem = useCallback((index: number, stat: Partial<StatItem>) => {
-    setConfigWithVersion((prev) => {
+    setConfig((prev) => {
       const items = [...prev.stats.items];
       items[index] = { ...items[index], ...stat };
       return { ...prev, stats: { ...prev.stats, items } };
     });
-  }, [setConfigWithVersion]);
+  }, []);
 
   const updateScreenshotItem = useCallback((index: number, screenshot: Partial<ScreenshotItem>) => {
-    setConfigWithVersion((prev) => {
+    setConfig((prev) => {
       const items = [...prev.screenshots.items];
       items[index] = { ...items[index], ...screenshot };
       return { ...prev, screenshots: { ...prev.screenshots, items } };
     });
-  }, [setConfigWithVersion]);
+  }, []);
 
   const updateTestimonialItem = useCallback((index: number, testimonial: Partial<TestimonialItem>) => {
-    setConfigWithVersion((prev) => {
+    setConfig((prev) => {
       const items = [...prev.testimonials.items];
       items[index] = { ...items[index], ...testimonial };
       return { ...prev, testimonials: { ...prev.testimonials, items } };
     });
-  }, [setConfigWithVersion]);
+  }, []);
 
   const updatePricingItem = useCallback((index: number, pricing: Partial<PricingItem>) => {
-    setConfigWithVersion((prev) => {
+    setConfig((prev) => {
       const items = [...prev.pricing.items];
       items[index] = { ...items[index], ...pricing };
       return { ...prev, pricing: { ...prev.pricing, items } };
     });
-  }, [setConfigWithVersion]);
+  }, []);
 
   const updateFAQItem = useCallback((index: number, faq: Partial<FAQItem>) => {
-    setConfigWithVersion((prev) => {
+    setConfig((prev) => {
       const items = [...prev.faq.items];
       items[index] = { ...items[index], ...faq };
       return { ...prev, faq: { ...prev.faq, items } };
     });
-  }, [setConfigWithVersion]);
+  }, []);
 
   const updateContact = useCallback((contact: Partial<SiteConfig['contact']>) => {
-    setConfigWithVersion((prev) => ({ ...prev, contact: { ...prev.contact, ...contact } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, contact: { ...prev.contact, ...contact } }));
+  }, []);
 
   const updateFooter = useCallback((footer: Partial<SiteConfig['footer']>) => {
-    setConfigWithVersion((prev) => ({ ...prev, footer: { ...prev.footer, ...footer } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, footer: { ...prev.footer, ...footer } }));
+  }, []);
 
   const updateNav = useCallback((nav: Partial<SiteConfig['nav']>) => {
-    setConfigWithVersion((prev) => ({ ...prev, nav: { ...prev.nav, ...nav } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, nav: { ...prev.nav, ...nav } }));
+  }, []);
 
   const updateAuthRegister = useCallback((auth: Partial<AuthPageConfig>) => {
-    setConfigWithVersion((prev) => ({ ...prev, authRegister: { ...prev.authRegister, ...auth } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, authRegister: { ...prev.authRegister, ...auth } }));
+  }, []);
 
   const updateAuthLogin = useCallback((auth: Partial<AuthPageConfig>) => {
-    setConfigWithVersion((prev) => ({ ...prev, authLogin: { ...prev.authLogin, ...auth } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, authLogin: { ...prev.authLogin, ...auth } }));
+  }, []);
 
   const updateHeroStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfigWithVersion((prev) => ({ ...prev, heroStyle: { ...prev.heroStyle, ...style } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, heroStyle: { ...prev.heroStyle, ...style } }));
+  }, []);
 
   const updateHowItWorksStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfigWithVersion((prev) => ({ ...prev, howItWorksStyle: { ...prev.howItWorksStyle, ...style } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, howItWorksStyle: { ...prev.howItWorksStyle, ...style } }));
+  }, []);
 
   const updateFeaturesStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfigWithVersion((prev) => ({ ...prev, featuresStyle: { ...prev.featuresStyle, ...style } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, featuresStyle: { ...prev.featuresStyle, ...style } }));
+  }, []);
 
   const updateStatsStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfigWithVersion((prev) => ({ ...prev, statsStyle: { ...prev.statsStyle, ...style } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, statsStyle: { ...prev.statsStyle, ...style } }));
+  }, []);
 
   const updateScreenshotsStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfigWithVersion((prev) => ({ ...prev, screenshotsStyle: { ...prev.screenshotsStyle, ...style } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, screenshotsStyle: { ...prev.screenshotsStyle, ...style } }));
+  }, []);
 
   const updateTestimonialsStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfigWithVersion((prev) => ({ ...prev, testimonialsStyle: { ...prev.testimonialsStyle, ...style } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, testimonialsStyle: { ...prev.testimonialsStyle, ...style } }));
+  }, []);
+
+  const updatePricingStyle = useCallback((style: Partial<SectionStyle>) => {
+    setConfig((prev) => ({ ...prev, pricingStyle: { ...prev.pricingStyle, ...style } }));
+  }, []);
 
   const updateFAQStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfigWithVersion((prev) => ({ ...prev, faqStyle: { ...prev.faqStyle, ...style } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, faqStyle: { ...prev.faqStyle, ...style } }));
+  }, []);
 
   const updateContactStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfigWithVersion((prev) => ({ ...prev, contactStyle: { ...prev.contactStyle, ...style } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, contactStyle: { ...prev.contactStyle, ...style } }));
+  }, []);
 
   const updateFooterStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfigWithVersion((prev) => ({ ...prev, footerStyle: { ...prev.footerStyle, ...style } }));
-  }, [setConfigWithVersion]);
+    setConfig((prev) => ({ ...prev, footerStyle: { ...prev.footerStyle, ...style } }));
+  }, []);
 
   const resetConfig = useCallback(() => {
-    const reset = { ...defaultSiteConfig };
-    setConfigState(reset);
-    configRef.current = reset;
-    localStorage.removeItem(STORAGE_KEY);
-    // Also clear DB on reset
-    supabase.from('site_config').delete().eq('id', 1).then(({ error }) => {
-      if (error) console.warn('[resetConfig] DB clear error:', error.message);
-    });
+    setConfig({ ...defaultSiteConfig });
   }, []);
 
-  // Save to localStorage (primary) + DB (background sync)
   const saveToDatabase = useCallback(async (data?: SiteConfig) => {
-    const configToSave = data ?? configRef.current;
-    console.log('[saveToDatabase] START');
-
-    // Always save to localStorage first (fast, reliable)
+    const cfg = data ?? config;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
-      localStorage.setItem('salekit_sync_trigger', String(Date.now()));
-    } catch { /* ignore */ }
-
-    // Then try DB in background (for cross-device sync)
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const { error: upsertError } = await supabase
+      const { error } = await supabase
         .from('site_config')
-        .upsert(
-          {
-            id: 1,
-            config_data: configToSave,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id' }
-        )
-        .abortSignal(controller.signal);
+        .upsert({ id: 1, config_data: cfg, updated_at: new Date().toISOString() }, { onConflict: 'id' });
 
-      clearTimeout(timeoutId);
-
-      if (upsertError) {
-        console.warn('[saveToDatabase] DB upsert error:', upsertError.message);
-        return { success: true, error: null, localOnly: true };
+      if (error) {
+        return { success: false, error: error.message };
       }
-
-      console.log('[saveToDatabase] END success — saved to DB + localStorage');
-      return { success: true, error: null, localOnly: false };
+      return { success: true, error: null };
     } catch (err) {
-      console.warn('[saveToDatabase] DB save failed:', (err as Error).message);
-      // Still success because localStorage saved
-      return { success: true, error: null, localOnly: true };
+      return { success: false, error: (err as Error).message };
     }
-  }, []);
+  }, [config]);
 
   return {
     config,
-    loading,
-    error,
-    setConfig,
+    setConfig: setConfigDirect,
     updateHero,
     updateHowItWorks,
     updateHowItWorksItem,
@@ -543,11 +381,11 @@ export function useSiteConfig() {
     updateStatsStyle,
     updateScreenshotsStyle,
     updateTestimonialsStyle,
+    updatePricingStyle,
     updateFAQStyle,
     updateContactStyle,
     updateFooterStyle,
     resetConfig,
     saveToDatabase,
-    fetchConfig,
   };
 }
