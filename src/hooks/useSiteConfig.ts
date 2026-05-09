@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY, isSupabaseReady } from '@/lib/supabase';
+import { useState, useEffect, useCallback } from 'react';
 import { defaultSiteConfig } from '@/mocks/siteConfig';
 
 export interface HowItWorkItem {
@@ -144,13 +143,11 @@ export interface SiteConfig {
     pricing: string;
     contact: string;
   };
-  // --- NEW simple homepage config ---
   simpleNav: NavLink[];
   simpleBanner: BannerConfig;
   simpleContent: {
     sections: ContentSection[];
   };
-  // --- END NEW ---
   hero: {
     title: string;
     subtitle: string;
@@ -219,94 +216,51 @@ export interface SiteConfig {
   };
 }
 
-const LS_KEY = 'site_config_backup';
+const LS_KEY = 'site_config_v1';
 
-function saveToLocalStorage(cfg: SiteConfig) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(cfg));
-    console.log('[saveToLocalStorage] Saved to localStorage');
-  } catch {
-    console.error('[saveToLocalStorage] Failed to save');
-  }
-}
-
-function loadFromLocalStorage(): SiteConfig | null {
+function loadConfig(): SiteConfig {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
-      console.log('[loadFromLocalStorage] Loaded from localStorage');
-      return JSON.parse(raw) as SiteConfig;
+      const parsed = JSON.parse(raw) as Partial<SiteConfig>;
+      return { ...defaultSiteConfig, ...parsed };
     }
   } catch {
-    console.error('[loadFromLocalStorage] Failed to load');
+    // ignore parse errors
   }
-  return null;
+  return { ...defaultSiteConfig };
+}
+
+function saveConfig(cfg: SiteConfig) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(cfg));
+  } catch {
+    // ignore storage errors
+  }
 }
 
 export function useSiteConfig() {
-  const [config, setConfig] = useState<SiteConfig>(() => ({ ...defaultSiteConfig }));
+  const [config, setConfigState] = useState<SiteConfig>(() => loadConfig());
 
-  // Luôn giữ ref đến config mới nhất để saveToDatabase không bị closure cũ
-  const configRef = useRef(config);
+  // Persist every change to localStorage immediately
   useEffect(() => {
-    configRef.current = config;
+    saveConfig(config);
   }, [config]);
 
-  // Luôn fetch từ DB khi mount - DB là nguồn sự thật, nhưng merge với default để tránh thiếu trường mới
-  useEffect(() => {
-    if (!isSupabaseReady) {
-      console.warn('[useSiteConfig] Supabase NOT ready, using localStorage fallback');
-      const ls = loadFromLocalStorage();
-      if (ls) setConfig(ls);
-      return;
-    }
-    supabase
-      .from('site_config')
-      .select('config_data')
-      .eq('id', 1)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('[useSiteConfig] Fetch error:', error);
-          const ls = loadFromLocalStorage();
-          if (ls) setConfig(ls);
-          return;
-        }
-        if (data?.config_data) {
-          const dbConfig = data.config_data as Partial<SiteConfig>;
-          setConfig((prev) => ({
-            ...prev,
-            ...dbConfig,
-            simpleNav: dbConfig.simpleNav ?? prev.simpleNav,
-            simpleBanner: dbConfig.simpleBanner ?? prev.simpleBanner,
-            simpleContent: dbConfig.simpleContent ?? prev.simpleContent,
-          }));
-        } else {
-          console.log('[useSiteConfig] No config found in DB, using default');
-        }
-      })
-      .catch((err) => {
-        console.error('[useSiteConfig] Fetch exception:', err);
-        const ls = loadFromLocalStorage();
-        if (ls) setConfig(ls);
-      });
-  }, []);
-
-  // ---- Setters ----
-  const setConfigDirect = useCallback((partial: Partial<SiteConfig>) => {
-    setConfig((prev) => ({ ...prev, ...partial }));
+  const setConfig = useCallback((partial: Partial<SiteConfig>) => {
+    setConfigState((prev) => ({ ...prev, ...partial }));
   }, []);
 
   const updateHero = useCallback((hero: Partial<SiteConfig['hero']>) => {
-    setConfig((prev) => ({ ...prev, hero: { ...prev.hero, ...hero } }));
+    setConfigState((prev) => ({ ...prev, hero: { ...prev.hero, ...hero } }));
   }, []);
 
   const updateHowItWorks = useCallback((howItWorks: Partial<SiteConfig['howItWorks']>) => {
-    setConfig((prev) => ({ ...prev, howItWorks: { ...prev.howItWorks, ...howItWorks } }));
+    setConfigState((prev) => ({ ...prev, howItWorks: { ...prev.howItWorks, ...howItWorks } }));
   }, []);
 
   const updateHowItWorksItem = useCallback((index: number, item: Partial<HowItWorkItem>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const items = [...prev.howItWorks.items];
       items[index] = { ...items[index], ...item };
       return { ...prev, howItWorks: { ...prev.howItWorks, items } };
@@ -314,7 +268,7 @@ export function useSiteConfig() {
   }, []);
 
   const updateFeatureItem = useCallback((index: number, item: Partial<FeatureItem>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const items = [...prev.features.items];
       items[index] = { ...items[index], ...item };
       return { ...prev, features: { ...prev.features, items } };
@@ -322,7 +276,7 @@ export function useSiteConfig() {
   }, []);
 
   const updateStatsItem = useCallback((index: number, stat: Partial<StatItem>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const items = [...prev.stats.items];
       items[index] = { ...items[index], ...stat };
       return { ...prev, stats: { ...prev.stats, items } };
@@ -330,7 +284,7 @@ export function useSiteConfig() {
   }, []);
 
   const updateScreenshotItem = useCallback((index: number, screenshot: Partial<ScreenshotItem>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const items = [...prev.screenshots.items];
       items[index] = { ...items[index], ...screenshot };
       return { ...prev, screenshots: { ...prev.screenshots, items } };
@@ -338,7 +292,7 @@ export function useSiteConfig() {
   }, []);
 
   const updateTestimonialItem = useCallback((index: number, testimonial: Partial<TestimonialItem>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const items = [...prev.testimonials.items];
       items[index] = { ...items[index], ...testimonial };
       return { ...prev, testimonials: { ...prev.testimonials, items } };
@@ -346,7 +300,7 @@ export function useSiteConfig() {
   }, []);
 
   const updatePricingItem = useCallback((index: number, pricing: Partial<PricingItem>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const items = [...prev.pricing.items];
       items[index] = { ...items[index], ...pricing };
       return { ...prev, pricing: { ...prev.pricing, items } };
@@ -354,7 +308,7 @@ export function useSiteConfig() {
   }, []);
 
   const updateFAQItem = useCallback((index: number, faq: Partial<FAQItem>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const items = [...prev.faq.items];
       items[index] = { ...items[index], ...faq };
       return { ...prev, faq: { ...prev.faq, items } };
@@ -362,24 +316,23 @@ export function useSiteConfig() {
   }, []);
 
   const updateContact = useCallback((contact: Partial<SiteConfig['contact']>) => {
-    setConfig((prev) => ({ ...prev, contact: { ...prev.contact, ...contact } }));
+    setConfigState((prev) => ({ ...prev, contact: { ...prev.contact, ...contact } }));
   }, []);
 
   const updateFooter = useCallback((footer: Partial<SiteConfig['footer']>) => {
-    setConfig((prev) => ({ ...prev, footer: { ...prev.footer, ...footer } }));
+    setConfigState((prev) => ({ ...prev, footer: { ...prev.footer, ...footer } }));
   }, []);
 
   const updateNav = useCallback((nav: Partial<SiteConfig['nav']>) => {
-    setConfig((prev) => ({ ...prev, nav: { ...prev.nav, ...nav } }));
+    setConfigState((prev) => ({ ...prev, nav: { ...prev.nav, ...nav } }));
   }, []);
 
-  // ---- NEW simple homepage setters ----
   const updateSimpleNav = useCallback((nav: NavLink[]) => {
-    setConfig((prev) => ({ ...prev, simpleNav: nav }));
+    setConfigState((prev) => ({ ...prev, simpleNav: nav }));
   }, []);
 
   const updateSimpleNavItem = useCallback((index: number, item: Partial<NavLink>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const items = [...prev.simpleNav];
       items[index] = { ...items[index], ...item };
       return { ...prev, simpleNav: items };
@@ -387,11 +340,11 @@ export function useSiteConfig() {
   }, []);
 
   const updateSimpleBanner = useCallback((banner: Partial<BannerConfig>) => {
-    setConfig((prev) => ({ ...prev, simpleBanner: { ...prev.simpleBanner, ...banner } }));
+    setConfigState((prev) => ({ ...prev, simpleBanner: { ...prev.simpleBanner, ...banner } }));
   }, []);
 
   const updateSimpleContentSection = useCallback((index: number, section: Partial<ContentSection>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const sections = [...prev.simpleContent.sections];
       sections[index] = { ...sections[index], ...section };
       return { ...prev, simpleContent: { ...prev.simpleContent, sections } };
@@ -399,7 +352,7 @@ export function useSiteConfig() {
   }, []);
 
   const updateSimpleContentArticle = useCallback((sectionIndex: number, articleIndex: number, article: Partial<ArticleItem>) => {
-    setConfig((prev) => {
+    setConfigState((prev) => {
       const sections = [...prev.simpleContent.sections];
       const articles = [...sections[sectionIndex].articles];
       articles[articleIndex] = { ...articles[articleIndex], ...article };
@@ -407,120 +360,62 @@ export function useSiteConfig() {
       return { ...prev, simpleContent: { ...prev.simpleContent, sections } };
     });
   }, []);
-  // ---- END NEW ----
 
   const updateAuthRegister = useCallback((auth: Partial<AuthPageConfig>) => {
-    setConfig((prev) => ({ ...prev, authRegister: { ...prev.authRegister, ...auth } }));
+    setConfigState((prev) => ({ ...prev, authRegister: { ...prev.authRegister, ...auth } }));
   }, []);
 
   const updateAuthLogin = useCallback((auth: Partial<AuthPageConfig>) => {
-    setConfig((prev) => ({ ...prev, authLogin: { ...prev.authLogin, ...auth } }));
+    setConfigState((prev) => ({ ...prev, authLogin: { ...prev.authLogin, ...auth } }));
   }, []);
 
   const updateHeroStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, heroStyle: { ...prev.heroStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, heroStyle: { ...prev.heroStyle, ...style } }));
   }, []);
 
   const updateHowItWorksStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, howItWorksStyle: { ...prev.howItWorksStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, howItWorksStyle: { ...prev.howItWorksStyle, ...style } }));
   }, []);
 
   const updateFeaturesStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, featuresStyle: { ...prev.featuresStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, featuresStyle: { ...prev.featuresStyle, ...style } }));
   }, []);
 
   const updateStatsStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, statsStyle: { ...prev.statsStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, statsStyle: { ...prev.statsStyle, ...style } }));
   }, []);
 
   const updateScreenshotsStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, screenshotsStyle: { ...prev.screenshotsStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, screenshotsStyle: { ...prev.screenshotsStyle, ...style } }));
   }, []);
 
   const updateTestimonialsStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, testimonialsStyle: { ...prev.testimonialsStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, testimonialsStyle: { ...prev.testimonialsStyle, ...style } }));
   }, []);
 
   const updatePricingStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, pricingStyle: { ...prev.pricingStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, pricingStyle: { ...prev.pricingStyle, ...style } }));
   }, []);
 
   const updateFAQStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, faqStyle: { ...prev.faqStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, faqStyle: { ...prev.faqStyle, ...style } }));
   }, []);
 
   const updateContactStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, contactStyle: { ...prev.contactStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, contactStyle: { ...prev.contactStyle, ...style } }));
   }, []);
 
   const updateFooterStyle = useCallback((style: Partial<SectionStyle>) => {
-    setConfig((prev) => ({ ...prev, footerStyle: { ...prev.footerStyle, ...style } }));
+    setConfigState((prev) => ({ ...prev, footerStyle: { ...prev.footerStyle, ...style } }));
   }, []);
 
   const resetConfig = useCallback(() => {
-    setConfig({ ...defaultSiteConfig });
+    setConfigState({ ...defaultSiteConfig });
   }, []);
-
-  // ===== SAVE: DB trước, fallback localStorage =====
-  const saveToDatabase = useCallback(async (data?: SiteConfig) => {
-    const cfg = data ?? configRef.current;
-    console.log('[saveToDatabase] ========== START ==========');
-    console.log('[saveToDatabase] Supabase ready?', isSupabaseReady);
-    console.log('[saveToDatabase] URL exists?', !!SUPABASE_URL);
-    console.log('[saveToDatabase] KEY exists?', !!SUPABASE_ANON_KEY);
-
-    // Luôn lưu localStorage trước để không mất data
-    saveToLocalStorage(cfg);
-
-    if (!isSupabaseReady) {
-      console.warn('[saveToDatabase] Supabase NOT ready, saved to localStorage only');
-      return { success: true, error: null, warning: 'Đã lưu local. Thiếu cấu hình Supabase trên server.' };
-    }
-
-    try {
-      console.log('[saveToDatabase] Saving directly to Supabase...');
-      console.log('[saveToDatabase] Config logo length:', cfg.logo?.length ?? 0);
-      console.log('[saveToDatabase] Config keys:', Object.keys(cfg));
-
-      const payload = {
-        id: 1,
-        config_data: cfg,
-        updated_at: new Date().toISOString(),
-      };
-
-      const payloadString = JSON.stringify(payload);
-      console.log('[saveToDatabase] Payload size:', payloadString.length, 'chars');
-
-      if (payloadString.length > 800000) {
-        console.error('[saveToDatabase] Payload too large!');
-        return { success: false, error: 'Dữ liệu quá lớn, vui lòng giảm kích thước ảnh' };
-      }
-
-      console.log('[saveToDatabase] Calling supabase.upsert...');
-      const { data: resultData, error } = await supabase
-        .from('site_config')
-        .upsert(payload, { onConflict: 'id' })
-        .select();
-
-      console.log('[saveToDatabase] upsert returned. error:', error);
-      console.log('[saveToDatabase] upsert returned. data:', resultData);
-
-      if (error) {
-        console.error('[saveToDatabase] Supabase error:', JSON.stringify(error));
-        return { success: false, error: error.message };
-      }
-      console.log('[saveToDatabase] Saved successfully!');
-      return { success: true, error: null };
-    } catch (err) {
-      console.error('[saveToDatabase] EXCEPTION:', err);
-      console.error('[saveToDatabase] EXCEPTION stack:', (err as Error).stack);
-      return { success: false, error: (err as Error).message };
-    }
-  }, []); // Không cần dependency config nữa vì dùng ref
 
   return {
     config,
-    setConfig: setConfigDirect,
+    setConfig,
     updateHero,
     updateHowItWorks,
     updateHowItWorksItem,
@@ -533,13 +428,11 @@ export function useSiteConfig() {
     updateContact,
     updateFooter,
     updateNav,
-    // --- NEW ---
     updateSimpleNav,
     updateSimpleNavItem,
     updateSimpleBanner,
     updateSimpleContentSection,
     updateSimpleContentArticle,
-    // --- END NEW ---
     updateAuthRegister,
     updateAuthLogin,
     updateHeroStyle,
@@ -553,6 +446,5 @@ export function useSiteConfig() {
     updateContactStyle,
     updateFooterStyle,
     resetConfig,
-    saveToDatabase,
   };
 }

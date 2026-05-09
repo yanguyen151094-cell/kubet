@@ -34,7 +34,6 @@ interface SiteConfigContextType {
   updateContactStyle: (style: Partial<SiteConfig['contactStyle']>) => void;
   updateFooterStyle: (style: Partial<SiteConfig['footerStyle']>) => void;
   resetConfig: () => void;
-  saveToDatabase: (data?: SiteConfig) => Promise<{ success: boolean; error: string | null }>;
 }
 
 const SiteConfigContext = createContext<SiteConfigContextType | null>(null);
@@ -73,8 +72,8 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
     updateContactStyle,
     updateFooterStyle,
     resetConfig,
-    saveToDatabase,
   } = useSiteConfig();
+
   return (
     <SiteConfigContext.Provider
       value={{
@@ -110,7 +109,6 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
         updateContactStyle,
         updateFooterStyle,
         resetConfig,
-        saveToDatabase,
       }}
     >
       {children}
