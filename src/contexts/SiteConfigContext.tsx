@@ -32,6 +32,7 @@ interface SiteConfigContextType {
   updateFooterStyle: (style: Partial<SiteConfig['footerStyle']>) => void;
   resetConfig: () => void;
   saveToDatabase: (data?: SiteConfig) => Promise<{ success: boolean; error: string | null; localOnly?: boolean }>;
+  fetchConfig: (sourceHint?: string) => Promise<{ source: string; config: SiteConfig }>;
 }
 
 const SiteConfigContext = createContext<SiteConfigContextType | null>(null);
@@ -67,6 +68,7 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
     updateFooterStyle,
     resetConfig,
     saveToDatabase,
+    fetchConfig,
   } = useSiteConfig();
   return (
     <SiteConfigContext.Provider
@@ -100,6 +102,7 @@ export function SiteConfigProvider({ children }: { children: React.ReactNode }) 
         updateFooterStyle,
         resetConfig,
         saveToDatabase,
+        fetchConfig,
       }}
     >
       {children}

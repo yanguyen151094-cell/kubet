@@ -188,6 +188,7 @@ export interface SiteConfig {
 }
 
 const STORAGE_KEY = 'salekit_site_config_v2';
+const CONFIG_TS_KEY = 'salekit_config_timestamp';
 
 function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = { ...target };
@@ -219,7 +220,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-// Helper: check if config_data is empty (null, undefined, {}, or no keys)
+// Helper: check if config_data is empty
 function isEmptyConfigData(data: unknown): boolean {
   if (!data) return true;
   if (typeof data !== 'object') return true;
@@ -233,88 +234,123 @@ export function useSiteConfig() {
   const [dbReady, setDbReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dbEnabledRef = useRef(true);
+  const refreshCountRef = useRef(0);
 
-  // Load from Supabase on mount
+  // Core fetch logic - can be called from anywhere
+  const fetchConfig = useCallback(async (sourceHint?: string) => {
+    refreshCountRef.current += 1;
+    const rc = refreshCountRef.current;
+    setLoading(true);
+
+    let source = 'default';
+    let mergedConfig: SiteConfig | null = null;
+
+    try {
+      // Try Supabase with timeout
+      const { data, error: dbError } = await withTimeout(
+        supabase
+          .from('site_config')
+          .select('config_data')
+          .eq('id', 1)
+          .maybeSingle(),
+        5000
+      );
+
+      console.log('[useSiteConfig] DB result #' + rc + ':', { hasData: !!data, config_data: data?.config_data, dbError: dbError?.message, sourceHint });
+
+      if (dbError) {
+        console.error('[useSiteConfig] Supabase load error:', dbError);
+        setError(dbError.message);
+        dbEnabledRef.current = false;
+      } else if (data && !isEmptyConfigData(data.config_data)) {
+        mergedConfig = mergeWithDefault(data.config_data as Record<string, unknown>);
+        dbEnabledRef.current = true;
+        source = 'supabase';
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedConfig));
+        } catch {
+          // ignore
+        }
+      }
+    } catch (err) {
+      console.error('[useSiteConfig] Config load error:', err);
+      setError('Không thể tải cấu hình từ server');
+      dbEnabledRef.current = false;
+    }
+
+    // If no valid DB config, try localStorage
+    if (!mergedConfig) {
+      try {
+        const cached = localStorage.getItem(STORAGE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached) as Record<string, unknown>;
+          mergedConfig = mergeWithDefault(parsed);
+          source = 'localStorage';
+          console.log('[useSiteConfig] Loaded from localStorage #' + rc);
+        }
+      } catch (e) {
+        console.error('[useSiteConfig] localStorage parse error:', e);
+      }
+    }
+
+    // Final fallback: default
+    if (!mergedConfig) {
+      mergedConfig = defaultSiteConfig;
+      source = 'default';
+      console.log('[useSiteConfig] Loaded from default #' + rc);
+    }
+
+    setConfigState(mergedConfig);
+    setDbReady(true);
+    setLoading(false);
+    console.log('[useSiteConfig] Final source #' + rc + ':', source, '| hero.title:', mergedConfig.hero.title.substring(0, 30));
+    return { source, config: mergedConfig };
+  }, []);
+
+  // Initial load on mount
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setDbReady(false);
-
     (async () => {
-      let source = 'default';
-      let mergedConfig: SiteConfig | null = null;
-
-      try {
-        // Try Supabase with timeout
-        const { data, error: dbError } = await withTimeout(
-          supabase
-            .from('site_config')
-            .select('config_data')
-            .eq('id', 1)
-            .maybeSingle(),
-          5000
-        );
-
-        console.log('[useSiteConfig] DB result:', { hasData: !!data, config_data: data?.config_data, dbError: dbError?.message });
-
-        if (!cancelled) {
-          if (dbError) {
-            console.error('[useSiteConfig] Supabase load error:', dbError);
-            setError(dbError.message);
-            dbEnabledRef.current = false;
-          } else if (data && !isEmptyConfigData(data.config_data)) {
-            mergedConfig = mergeWithDefault(data.config_data as Record<string, unknown>);
-            dbEnabledRef.current = true;
-            source = 'supabase';
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedConfig));
-            } catch {
-              // ignore
-            }
-          }
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error('[useSiteConfig] Config load error:', err);
-          setError('Không thể tải cấu hình từ server');
-          dbEnabledRef.current = false;
-        }
-      }
-
-      // If no valid DB config, try localStorage
-      if (!mergedConfig) {
-        try {
-          const cached = localStorage.getItem(STORAGE_KEY);
-          if (cached) {
-            const parsed = JSON.parse(cached) as Record<string, unknown>;
-            mergedConfig = mergeWithDefault(parsed);
-            source = 'localStorage';
-            console.log('[useSiteConfig] Loaded from localStorage');
-          }
-        } catch (e) {
-          console.error('[useSiteConfig] localStorage parse error:', e);
-        }
-      }
-
-      // Final fallback: default
-      if (!mergedConfig) {
-        mergedConfig = defaultSiteConfig;
-        source = 'default';
-        console.log('[useSiteConfig] Loaded from default');
-      }
-
-      if (!cancelled) {
-        setConfigState(mergedConfig);
-        setDbReady(true);
-        setLoading(false);
-        console.log('[useSiteConfig] Final source:', source, '| hero.title:', mergedConfig.hero.title.substring(0, 30));
-      }
+      await fetchConfig('initial');
     })();
-
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchConfig]);
+
+  // Listen for cross-tab config changes via storage event
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY || e.key === CONFIG_TS_KEY) {
+        console.log('[useSiteConfig] Storage changed from other tab, refreshing...');
+        fetchConfig('storage-event');
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [fetchConfig]);
+
+  // Re-fetch when tab becomes visible (user switches back from admin tab)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        console.log('[useSiteConfig] Tab became visible, refreshing config...');
+        fetchConfig('visibility');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [fetchConfig]);
+
+  // Re-fetch every 30s while page is active (polling for external changes)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchConfig('polling');
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchConfig]);
 
   // Save to localStorage whenever config changes (debounced)
   useEffect(() => {
@@ -458,6 +494,7 @@ export function useSiteConfig() {
   const resetConfig = useCallback(() => {
     setConfigState(defaultSiteConfig);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CONFIG_TS_KEY);
     supabase
       .from('site_config')
       .upsert({ id: 1, key: 'default', config_data: defaultSiteConfig, updated_at: new Date().toISOString() })
@@ -471,6 +508,7 @@ export function useSiteConfig() {
       // Always save to localStorage first
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
+        localStorage.setItem(CONFIG_TS_KEY, Date.now().toString());
         console.log('[saveToDatabase] Saved to localStorage');
       } catch {
         // ignore
@@ -541,5 +579,6 @@ export function useSiteConfig() {
     updateFooterStyle,
     resetConfig,
     saveToDatabase,
+    fetchConfig,
   };
 }
